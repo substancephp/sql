@@ -15,12 +15,14 @@
         }
     },
     "require": {
-        "php": ">=8.3"
+        "php": ">=8.4",
+        "ext-pdo": "*"
     },
     "require-dev": {
         "ext-xdebug": "*",
+        "ext-sqlite3": "*",
         "phpunit/phpunit": "^11.0",
-        "phpstan/phpstan": "^1.11",
+        "phpstan/phpstan": "^2.1",
         "squizlabs/php_codesniffer": "*"
     },
     "minimum-stability": "stable",

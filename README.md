@@ -1,15 +1,17 @@
-# [SubstancePHP](https://github.com/substancephp): [Skeleton](https://packagist.org/packages/substancephp/skeleton)
+# [SubstancePHP](https://github.com/substancephp): [SQL](https://packagist.org/packages/substancephp/sql)
 
 ## Overview
 
-`substancephp/skeleton` is a scaffolding for creating PHP library packages.
+`substancephp/sql` is a simple SQL query builder library for PHP.
+
+## Installation
+
+```
+composer require substancephp/sql
+```
+
+Note PHP 8.4 or greater is required.
 
 ## Usage
 
-Run the following command:
-
-```
-composer create-project substancephp/skeleton my-package
-```
-
-Then replace generated code as needed.
+TODO
