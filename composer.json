@@ -1,0 +1,47 @@
+{
+    "name": "substancephp/sql",
+    "description": "A scaffolding for PHP library packages",
+    "type": "library",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+          "SubstancePHP\\SQL\\": "src"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Test\\": "test",
+            "TestUtil\\": "testutil"
+        }
+    },
+    "require": {
+        "php": ">=8.3"
+    },
+    "require-dev": {
+        "ext-xdebug": "*",
+        "phpunit/phpunit": "^11.0",
+        "phpstan/phpstan": "^1.11",
+        "squizlabs/php_codesniffer": "*"
+    },
+    "minimum-stability": "stable",
+    "scripts": {
+        "check": ["@stan", "@test", "@cs"],
+        "stan": "vendor/bin/phpstan analyse --level=7 src test testutil",
+        "cs": "vendor/bin/phpcs --standard=PSR12 src test testutil",
+        "test": "XDEBUG_MODE=coverage vendor/bin/phpunit --coverage-text test",
+        "serve-coverage-report": "php -S localhost:3000 -t html-coverage",
+        "cbf": "vendor/bin/phpcbf --standard=PSR12 src test testutil"
+    },
+    "scripts-descriptions": {
+      "check": "Run all the code quality checks",
+      "test": "Run the tests",
+      "stan": "Run static analysis",
+      "cs": "Run PHP_CodeSniffer to detect linting issues",
+      "serve-coverage-report": "Serve an HTML code coverage report",
+      "cbf": "Auto-fix linting any issues that can be auto-fixed"
+    },
+    "support": {
+        "issues": "https://github.com/substancephp/sql/issues",
+        "source": "https://github.com/substancephp/sql"
+    }
+}
