@@ -27,7 +27,7 @@
     },
     "minimum-stability": "stable",
     "scripts": {
-        "check": ["@stan", "@test", "@cs"],
+        "qa": ["@stan", "@test", "@cs"],
         "stan": "vendor/bin/phpstan analyse --level=7 src test testutil",
         "cs": "vendor/bin/phpcs --standard=PSR12 src test testutil",
         "test": "XDEBUG_MODE=coverage vendor/bin/phpunit --coverage-text test",
@@ -35,7 +35,7 @@
         "cbf": "vendor/bin/phpcbf --standard=PSR12 src test testutil"
     },
     "scripts-descriptions": {
-      "check": "Run all the code quality checks",
+      "qa": "Run all the code quality checks",
       "test": "Run the tests",
       "stan": "Run static analysis",
       "cs": "Run PHP_CodeSniffer to detect linting issues",
