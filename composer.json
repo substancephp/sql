@@ -1,6 +1,6 @@
 {
     "name": "substancephp/sql",
-    "description": "A scaffolding for PHP library packages",
+    "description": "A simple SQL query builder for PHP",
     "type": "library",
     "license": "MIT",
     "autoload": {
