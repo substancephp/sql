@@ -2,7 +2,9 @@
 
 ## Overview
 
-`substancephp/sql` is a simple SQL query builder library for PHP.
+`substancephp/sql` is a SQL query builder library for PHP.
+
+It is intended as a very thin wrapper around raw SQL.
 
 ## Installation
 
