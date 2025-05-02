@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SubstancePHP\SQL;
 
+use http\Header\Parser;
 use SubstancePHP\SQL\Internal\Literal;
 
 class Query
@@ -47,9 +48,19 @@ class Query
     /**
      * @param array<int|string, string> $columns
      *
+     * Use like: Query::select(['fieldA', 'alias_for_fieldB' => 'fieldB'])
+     */
+    public static function select(array $columns): self
+    {
+        return new self()->appendSelect($columns);
+    }
+
+    /**
+     * @param array<int|string, string> $columns
+     *
      * Use like: ->select(['fieldA', 'alias_for_fieldB' => 'fieldB'])
      */
-    public function select(array $columns): self
+    public function appendSelect(array $columns): self
     {
         $this->append('select');
         $i = 0;
@@ -206,7 +217,12 @@ class Query
         return $this;
     }
 
-    public function update(string $table): self
+    public static function update(string $table): self
+    {
+        return new self()->appendUpdate($table);
+    }
+
+    public function appendUpdate(string $table): self
     {
         return $this->append("update $table");
     }
@@ -227,7 +243,13 @@ class Query
     }
 
     /** @param array<string, mixed> $values */
-    public function insertInto(string $table, array $values): self
+    public static function insertInto(string $table, array $values): self
+    {
+        return new self()->appendInsertInto($table, $values);
+    }
+
+    /** @param array<string, mixed> $values */
+    public function appendInsertInto(string $table, array $values): self
     {
         $this->append("insert into $table (");
         $deferredPlaceholders = [];
@@ -249,7 +271,12 @@ class Query
         return $this->appendTight($fragment)->appendTight(')');
     }
 
-    public function deleteFrom(string $table): self
+    public static function deleteFrom(string $table): self
+    {
+        return new self()->appendDeleteFrom($table);
+    }
+
+    public function appendDeleteFrom(string $table): self
     {
         return $this->append("delete from $table");
     }
@@ -261,7 +288,13 @@ class Query
     }
 
     /** @param array<string, callable> $clauses */
-    public function with(array $clauses): self
+    public static function with(array $clauses): self
+    {
+        return new self()->appendWith($clauses);
+    }
+
+    /** @param array<string, callable> $clauses */
+    public function appendWith(array $clauses): self
     {
         $this->appendTight('with');
         $i = 0;

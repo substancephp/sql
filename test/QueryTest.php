@@ -55,17 +55,17 @@ final class QueryTest extends TestCase
 
     public function testInsertSelectFrom(): void
     {
-        $query = new Query();
         $this->createThingsTable();
-        $query->insertInto('things', [
+        $query = Query::insertInto('things', [
             'x' => 'hi',
             'y' => 30,
             'z' => null,
             't' => Query::literal("date('now')"),
-        ])->run($this->pdo);
+        ]);
+        $query->run($this->pdo);
         $this->assertSame("insert into things (x, y, z, t) values (?, ?, ?, date('now'))", $query->sql);
-        new Query()->insertInto('things', ['x' => 'nice', 'y' => 2, 'z' => 5.6])->run($this->pdo);
-        $query = new Query()->select(['x', 'y', 'stuff' => 'z'])->from('things');
+        Query::insertInto('things', ['x' => 'nice', 'y' => 2, 'z' => 5.6])->run($this->pdo);
+        $query = Query::select(['x', 'y', 'stuff' => 'z'])->from('things');
         $this->assertSame('select x, y, z as stuff from things', $query->sql);
         $results = $query->fetchAll($this->pdo);
         $this->assertSame(2, count($results));
@@ -76,15 +76,16 @@ final class QueryTest extends TestCase
 
     public function testInnerJoinOn(): void
     {
-        $query = new Query();
-        $query->select(['x', 'y', 'z'])->from('items')->innerJoin('cool_things')->on('whatever');
+        $query = Query::select(['x', 'y', 'z'])
+            ->from('items')->innerJoin('cool_things')->on('whatever');
         $this->assertSame('select x, y, z from items inner join cool_things on (whatever)', $query->sql);
     }
 
     public function testLeftJoinOn(): void
     {
-        $query = new Query();
-        $query->select(['x', 'y', 'z'])->from('items')->leftJoin('cool_things')->on('whatever = hey.yo');
+        $query = Query::select(['x', 'y', 'z'])
+            ->from('items')->leftJoin('cool_things')
+            ->on('whatever = hey.yo');
         $this->assertSame('select x, y, z from items left join cool_things on (whatever = hey.yo)', $query->sql);
     }
 
@@ -101,21 +102,21 @@ final class QueryTest extends TestCase
     {
         // basic case
         $query = new Query();
-        $query->select(['x', 'y'])->from('things')->where(['x' => 3, 'y' => 'cool']);
+        $query->appendSelect(['x', 'y'])->from('things')->where(['x' => 3, 'y' => 'cool']);
         $this->assertSame('select x, y from things where ( x = ? and y = ? )', $query->sql);
         $this->assertSame(3, $query->params[0]);
         $this->assertSame('cool', $query->params[1]);
 
         // with different comparator
         $query = new Query();
-        $query->select(['x', 'y'])->from('things')->where(['x' => 3, 'y' => 'cool'], '<=');
+        $query->appendSelect(['x', 'y'])->from('things')->where(['x' => 3, 'y' => 'cool'], '<=');
         $this->assertSame('select x, y from things where ( x <= ? and y <= ? )', $query->sql);
         $this->assertSame(3, $query->params[0]);
         $this->assertSame('cool', $query->params[1]);
 
         // with different boolean operator, and throwing NULL into the mix
         $query = new Query();
-        $query->select(['x', 'y'])->from('things')
+        $query->appendSelect(['x', 'y'])->from('things')
             ->where(['x' => 3, 'y' => 'cool', 'z' => null], '=', 'or');
         $this->assertSame('select x, y from things where ( x = ? or y = ? or z is null )', $query->sql);
         $this->assertSame(3, $query->params[0]);
@@ -123,7 +124,7 @@ final class QueryTest extends TestCase
 
         // with NOT NULL (variant A)
         $query = new Query();
-        $query->select(['x', 'y'])->from('things')
+        $query->appendSelect(['x', 'y'])->from('things')
             ->where(['x' => 3, 'y' => 'cool', 'z' => null], '<>', 'or');
         $this->assertSame('select x, y from things where ( x <> ? or y <> ? or z is not null )', $query->sql);
         $this->assertSame(3, $query->params[0]);
@@ -131,8 +132,7 @@ final class QueryTest extends TestCase
         $this->assertFalse(isset($query->params[2]));
 
         // with NOT NULL (variant B)
-        $query = new Query();
-        $query->select(['x', 'y'])->from('things')
+        $query = Query::select(['x', 'y'])->from('things')
             ->where(['x' => 3, 'y' => 'cool', 'z' => null], '!=', 'or');
         $this->assertSame('select x, y from things where ( x != ? or y != ? or z is not null )', $query->sql);
         $this->assertSame(3, $query->params[0]);
@@ -140,8 +140,7 @@ final class QueryTest extends TestCase
         $this->assertFalse(isset($query->params[2]));
 
         // combine with andWhere
-        $query = new Query();
-        $query->select(['x', 'y'])->from('things')
+        $query = Query::select(['x', 'y'])->from('things')
             ->whereNot(['x' => false, 'z' => null])
             ->andWhere(['fun' => 'great', 'things' => false], '>', 'or')
             ->andWhereNot(['x' => 3]);
@@ -151,7 +150,7 @@ final class QueryTest extends TestCase
         // with NOT NULL (invalid comparison)
         $query = new Query();
         $this->expectException(\RuntimeException::class);
-        $query->select(['x', 'y'])->from('things')
+        $query->appendSelect(['x', 'y'])->from('things')
             ->where(['x' => 3, 'y' => 'cool', 'z' => null], '>', 'or');
     }
 
@@ -172,23 +171,20 @@ final class QueryTest extends TestCase
 
     public function testParens(): void
     {
-        $query = new Query();
-        $query->select(['1', 'cool'])->append('where')->parens(fn ($q) => $q->append('1 = 2 and 3 = 4'));
+        $query = Query::select(['1', 'cool'])->append('where')->parens(fn ($q) => $q->append('1 = 2 and 3 = 4'));
         $this->assertSame('select 1, cool where ( 1 = 2 and 3 = 4 )', $query->sql);
     }
 
     public function testLimit(): void
     {
-        $query = new Query();
-        $query->select(['*'])->from('things')->limit(50);
+        $query = Query::select(['*'])->from('things')->limit(50);
         $this->assertSame('select * from things limit ?', $query->sql);
         $this->assertSame([50], $query->params);
     }
 
     public function testOffset(): void
     {
-        $query = new Query();
-        $query->select(['*'])->from('things')->offset(10);
+        $query = Query::select(['*'])->from('things')->offset(10);
         $this->assertSame('select * from things offset ?', $query->sql);
         $this->assertSame([10], $query->params);
     }
@@ -196,15 +192,12 @@ final class QueryTest extends TestCase
     public function testUpdateAndSet(): void
     {
         $this->createThingsTable();
-        $query = new Query();
-        $query->insertInto('things', ['x' => 3, 'y' => 'cool', 'z' => false])->run($this->pdo);
-        $query = new Query();
-        $query->update('things')->set(['x' => 50, 'z' => null]);
+        Query::insertInto('things', ['x' => 3, 'y' => 'cool', 'z' => false])->run($this->pdo);
+        $query = Query::update('things')->set(['x' => 50, 'z' => null]);
         $this->assertSame('update things set x = ?, z = ?', $query->sql);
         $this->assertSame([50, null], $query->params);
         $query->run($this->pdo);
-        $query = new Query();
-        $results = $query->select(['x', 'y', 'z'])->from('things')->fetchAll($this->pdo);
+        $results = Query::select(['x', 'y', 'z'])->from('things')->fetchAll($this->pdo);
         $this->assertSame(50, $results[0]['x']);
         $this->assertSame('cool', $results[0]['y']);
         $this->assertSame(null, $results[0]['z']);
@@ -213,18 +206,15 @@ final class QueryTest extends TestCase
     public function testDeleteFrom(): void
     {
         $this->createThingsTable();
-        $query = new Query();
-        $query->insertInto('things', ['x' => 3, 'y' => 'cool', 'z' => false])->run($this->pdo);
-        new Query()->insertInto('things', ['x' => 5, 'y' => 'cool2', 'z' => true])->run($this->pdo);
-        new Query()->insertInto('things', ['x' => 3, 'y' => 'cool2', 'z' => true])->run($this->pdo);
-        $query = new Query();
-        $query->deleteFrom('things');
+        Query::insertInto('things', ['x' => 3, 'y' => 'cool', 'z' => false])->run($this->pdo);
+        Query::insertInto('things', ['x' => 5, 'y' => 'cool2', 'z' => true])->run($this->pdo);
+        Query::insertInto('things', ['x' => 3, 'y' => 'cool2', 'z' => true])->run($this->pdo);
+        $query = Query::deleteFrom('things');
         $this->assertSame('delete from things', $query->sql);
         $query->where(['x' => 5]);
         $this->assertSame('delete from things where ( x = ? )', $query->sql);
         $query->run($this->pdo);
-        $query = new Query();
-        $results = $query->select(['x'])->from('things')->fetchAll($this->pdo);
+        $results = Query::select(['x'])->from('things')->fetchAll($this->pdo);
         $this->assertSame(2, count($results));
         $this->assertSame(3, $results[1]['x']);
     }
@@ -232,19 +222,18 @@ final class QueryTest extends TestCase
     public function testReturning(): void
     {
         $this->createThingsTable();
-        $query = new Query();
-        $query->insertInto('things', ['x' => 3, 'y' => 'cool', 'z' => false])->returning(['y', '3']);
+        $query = Query::insertInto('things', ['x' => 3, 'y' => 'cool', 'z' => false])->returning(['y', '3']);
         $this->assertSame("insert into things (x, y, z) values (?, ?, ?) returning y, 3", $query->sql);
         // Testing against SQLite so can't execute this one as RETURNING is postgres-specific.
     }
 
     public function testWith(): void
     {
-        $query = new Query();
-        $query->with([
-            'items' => fn ($q) => $q->select(['x'])->from('things')->where(['y' => 3]),
-            'other_items' => fn ($q) => $q->select(['y', 'z'])->from('things')->where(['z' => 50])->orderBy(['z']),
-        ])->select(['x'])->from('items');
+        $query = Query::with([
+            'items' => fn ($q) => $q->appendSelect(['x'])->from('things')->where(['y' => 3]),
+            'other_items' => fn ($q) =>
+                $q->appendSelect(['y', 'z'])->from('things')->where(['z' => 50])->orderBy(['z']),
+        ])->appendSelect(['x'])->from('items');
         $this->assertSame(
             'with items as ( select x from things where ( y = ? ) ), other_items as ( select y, z from ' .
                 'things where ( z = ? ) order by z ) select x from items',
@@ -255,8 +244,7 @@ final class QueryTest extends TestCase
 
     public function testWhereIn(): void
     {
-        $query = new Query();
-        $query->select(['x'])->from('things')->where(['y' => [1, 20, 25]], 'in');
+        $query = Query::select(['x'])->from('things')->where(['y' => [1, 20, 25]], 'in');
         $this->assertSame(
             'select x from things where ( y in ( ?, ?, ? ) )',
             $query->sql,
@@ -266,15 +254,13 @@ final class QueryTest extends TestCase
 
     public function testLiteral(): void
     {
-        $query = new Query();
-        $query->select(['x'])->from('things')->where(['y' => Query::literal('NOW()')], '>');
+        $query = Query::select(['x'])->from('things')->where(['y' => Query::literal('NOW()')], '>');
         $this->assertSame('select x from things where ( y > NOW() )', $query->sql);
     }
 
     public function testAppend(): void
     {
-        $query = new Query();
-        $query->select(['x'])->from('things')->append('then write anything')->append('cool');
+        $query = Query::select(['x'])->from('things')->append('then write anything')->append('cool');
         $this->assertSame('select x from things then write anything cool', $query->sql);
         $query = new Query()->append('with hi');
         $this->assertSame('with hi', $query->sql);
@@ -282,8 +268,11 @@ final class QueryTest extends TestCase
 
     public function testAppendTight(): void
     {
-        $query = new Query();
-        $query->select(['x'])->from('things')->appendTight('then write anything')->append('word')->appendTight('cool');
+        $query = Query::select(['x'])
+            ->from('things')
+            ->appendTight('then write anything')
+            ->append('word')
+            ->appendTight('cool');
         $this->assertSame('select x from thingsthen write anything wordcool', $query->sql);
         $query = new Query();
         $query->appendTight('with hi ');
