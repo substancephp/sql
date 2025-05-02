@@ -33,13 +33,6 @@ class Query
         };
     }
 
-    public function clear(): self
-    {
-        $this->sql = '';
-        $this->params = [];
-        return $this;
-    }
-
     /** @return array<string, mixed>[] */
     public function fetchAll(\PDO $pdo): array
     {
