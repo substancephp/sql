@@ -4,9 +4,12 @@ declare(strict_types=1);
 
 namespace Test;
 
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Test;
 use SubstancePHP\SQL\Query;
 use PHPUnit\Framework\TestCase;
 
+#[CoversClass(Query::class)]
 final class QueryTest extends TestCase
 {
     private \PDO $pdo;
@@ -25,7 +28,8 @@ final class QueryTest extends TestCase
         return $query;
     }
 
-    public function testRunAndClear(): void
+    #[Test]
+    public function runAndClear(): void
     {
         $this->createThingsTable();
         new Query()->append('insert into things (x, y, z) values (10, 20, 30)')->run($this->pdo);
@@ -37,7 +41,8 @@ final class QueryTest extends TestCase
         );
     }
 
-    public function testFetchAll(): void
+    #[Test]
+    public function fetchAll(): void
     {
         $query = new Query();
         $query->append('select 1 as x');
@@ -45,7 +50,8 @@ final class QueryTest extends TestCase
         $this->assertSame(1, $results[0]['x']);
     }
 
-    public function testFetchColumn(): void
+    #[Test]
+    public function fetchColumn(): void
     {
         $query = new Query();
         $query->append('select 1 as x');
@@ -53,7 +59,8 @@ final class QueryTest extends TestCase
         $this->assertSame(1, $result);
     }
 
-    public function testInsertSelectFrom(): void
+    #[Test]
+    public function insertSelectFrom(): void
     {
         $this->createThingsTable();
         $query = Query::insertInto('things', [
@@ -74,14 +81,16 @@ final class QueryTest extends TestCase
         $this->assertSame('nice', $results[1]['x']);
     }
 
-    public function testInnerJoinOn(): void
+    #[Test]
+    public function innerJoinOn(): void
     {
         $query = Query::select(['x', 'y', 'z'])
             ->from('items')->innerJoin('cool_things')->on('whatever');
         $this->assertSame('select x, y, z from items inner join cool_things on (whatever)', $query->sql);
     }
 
-    public function testLeftJoinOn(): void
+    #[Test]
+    public function leftJoinOn(): void
     {
         $query = Query::select(['x', 'y', 'z'])
             ->from('items')->leftJoin('cool_things')
@@ -89,7 +98,8 @@ final class QueryTest extends TestCase
         $this->assertSame('select x, y, z from items left join cool_things on (whatever = hey.yo)', $query->sql);
     }
 
-    public function testGroupBy(): void
+    #[Test]
+    public function groupBy(): void
     {
         $query = new Query();
         $query->groupBy(['x']);
@@ -98,7 +108,8 @@ final class QueryTest extends TestCase
         $this->assertSame('group by y, z, africa', $query->sql);
     }
 
-    public function testWhereAndCo(): void
+    #[Test]
+    public function whereAndCo(): void
     {
         // basic case
         $query = new Query();
@@ -154,7 +165,8 @@ final class QueryTest extends TestCase
             ->where(['x' => 3, 'y' => 'cool', 'z' => null], '>', 'or');
     }
 
-    public function testOrderBy(): void
+    #[Test]
+    public function orderBy(): void
     {
         $query = new Query();
         $query->orderBy(['fieldA', 'fieldB' => 'desc', 'fieldC' => 'asc', 'fieldD']);
@@ -169,27 +181,31 @@ final class QueryTest extends TestCase
         $this->assertSame('order by fieldB desc', $query->sql);
     }
 
-    public function testParens(): void
+    #[Test]
+    public function parens(): void
     {
         $query = Query::select(['1', 'cool'])->append('where')->parens(fn ($q) => $q->append('1 = 2 and 3 = 4'));
         $this->assertSame('select 1, cool where ( 1 = 2 and 3 = 4 )', $query->sql);
     }
 
-    public function testLimit(): void
+    #[Test]
+    public function limit(): void
     {
         $query = Query::select(['*'])->from('things')->limit(50);
         $this->assertSame('select * from things limit ?', $query->sql);
         $this->assertSame([50], $query->params);
     }
 
-    public function testOffset(): void
+    #[Test]
+    public function offset(): void
     {
         $query = Query::select(['*'])->from('things')->offset(10);
         $this->assertSame('select * from things offset ?', $query->sql);
         $this->assertSame([10], $query->params);
     }
 
-    public function testUpdateAndSet(): void
+    #[Test]
+    public function updateAndSet(): void
     {
         $this->createThingsTable();
         Query::insertInto('things', ['x' => 3, 'y' => 'cool', 'z' => false])->run($this->pdo);
@@ -203,7 +219,8 @@ final class QueryTest extends TestCase
         $this->assertSame(null, $results[0]['z']);
     }
 
-    public function testDeleteFrom(): void
+    #[Test]
+    public function deleteFrom(): void
     {
         $this->createThingsTable();
         Query::insertInto('things', ['x' => 3, 'y' => 'cool', 'z' => false])->run($this->pdo);
@@ -219,7 +236,8 @@ final class QueryTest extends TestCase
         $this->assertSame(3, $results[1]['x']);
     }
 
-    public function testReturning(): void
+    #[Test]
+    public function returning(): void
     {
         $this->createThingsTable();
         $query = Query::insertInto('things', ['x' => 3, 'y' => 'cool', 'z' => false])->returning(['y', '3']);
@@ -227,7 +245,8 @@ final class QueryTest extends TestCase
         // Testing against SQLite so can't execute this one as RETURNING is postgres-specific.
     }
 
-    public function testWith(): void
+    #[Test]
+    public function with(): void
     {
         $query = Query::with([
             'items' => fn ($q) => $q->appendSelect(['x'])->from('things')->where(['y' => 3]),
@@ -242,7 +261,8 @@ final class QueryTest extends TestCase
         $this->assertSame([3, 50], $query->params);
     }
 
-    public function testWhereIn(): void
+    #[Test]
+    public function whereIn(): void
     {
         $query = Query::select(['x'])->from('things')->where(['y' => [1, 20, 25]], 'in');
         $this->assertSame(
@@ -252,13 +272,15 @@ final class QueryTest extends TestCase
         $this->assertSame([1, 20, 25], $query->params);
     }
 
-    public function testLiteral(): void
+    #[Test]
+    public function literal(): void
     {
         $query = Query::select(['x'])->from('things')->where(['y' => Query::literal('NOW()')], '>');
         $this->assertSame('select x from things where ( y > NOW() )', $query->sql);
     }
 
-    public function testAppend(): void
+    #[Test]
+    public function append(): void
     {
         $query = Query::select(['x'])->from('things')->append('then write anything')->append('cool');
         $this->assertSame('select x from things then write anything cool', $query->sql);
@@ -266,7 +288,8 @@ final class QueryTest extends TestCase
         $this->assertSame('with hi', $query->sql);
     }
 
-    public function testAppendTight(): void
+    #[Test]
+    public function appendTight(): void
     {
         $query = Query::select(['x'])
             ->from('things')
@@ -279,7 +302,8 @@ final class QueryTest extends TestCase
         $this->assertSame('with hi ', $query->sql);
     }
 
-    public function testAppendParamAndParams(): void
+    #[Test]
+    public function appendParamAndParams(): void
     {
         $query = new Query();
         $this->assertSame([], $query->params);
@@ -287,11 +311,5 @@ final class QueryTest extends TestCase
         $this->assertSame([30], $query->params);
         $query->appendParam('hi');
         $this->assertSame([30, 'hi'], $query->params);
-    }
-
-    public function testSql(): void
-    {
-        $query = new Query()->append('words are here');
-        $this->assertSame('words are here', $query->sql);
     }
 }

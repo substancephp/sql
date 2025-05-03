@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SubstancePHP\SQL\Internal;
 
+/** @internal */
 readonly class Literal
 {
     public function __construct(private string $str)
