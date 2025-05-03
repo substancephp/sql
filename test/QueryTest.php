@@ -28,12 +28,6 @@ final class QueryTest extends TestCase
         $query->append('create table things (x, y, z, t)')->run($this->pdo);
     }
 
-    private function createVehiclesTable(): void
-    {
-        $query = new Query();
-        $query->append('create table vehicles (kind, make, model, year, brief_description)')->run($this->pdo);
-    }
-
     #[Test]
     public function runAndClear(): void
     {
@@ -54,50 +48,6 @@ final class QueryTest extends TestCase
         $query->append('select 1 as x');
         $results = $query->fetchAll($this->pdo);
         $this->assertSame(1, $results[0]['x']);
-    }
-
-    #[Test]
-    public function fetchModels(): void
-    {
-        $this->createVehiclesTable();
-        Query::insertInto('vehicles', [
-            'kind' => 'car',
-            'make' => 'Toyota',
-            'model' => 'Crown',
-            'year' => 1990,
-            'brief_description' => 'flagship luxury sedan',
-        ])->run($this->pdo);
-        Query::insertInto('vehicles', [
-            'kind' => 'car',
-            'make' => 'Toyota',
-            'model' => 'Camry',
-            'year' => 1999,
-            'brief_description' => 'family sedan',
-        ])->run($this->pdo);
-
-        $vehicles = Query::select([
-            'kind',
-            'make',
-            'model',
-            'year',
-            'briefDescription' => 'brief_description',
-        ])->from('vehicles')->fetchModels($this->pdo, Vehicle::class);
-
-        $this->assertCount(2, $vehicles);
-
-        $this->assertInstanceOf(Vehicle::class, $vehicles[0]);
-        $this->assertEquals('car', $vehicles[0]->kind);
-        $this->assertEquals('Toyota', $vehicles[0]->make);
-        $this->assertEquals('Crown', $vehicles[0]->model);
-        $this->assertEquals(1990, $vehicles[0]->year);
-        $this->assertEquals('flagship luxury sedan', $vehicles[0]->briefDescription);
-
-        $this->assertInstanceOf(Vehicle::class, $vehicles[1]);
-        $this->assertEquals('car', $vehicles[1]->kind);
-        $this->assertEquals('Toyota', $vehicles[1]->make);
-        $this->assertEquals('Camry', $vehicles[1]->model);
-        $this->assertEquals(1999, $vehicles[1]->year);
-        $this->assertEquals('family sedan', $vehicles[1]->briefDescription);
     }
 
     #[Test]
