@@ -40,6 +40,28 @@ class Query
         return $this->run($pdo)->fetchAll();
     }
 
+    /**
+     * @template T
+     * @param \PDO $pdo
+     * @param class-string<T> $class
+     * @return T[]
+     * @throws \ReflectionException
+     */
+    public function fetchModels(\PDO $pdo, string $class): array
+    {
+        $rows = $this->run($pdo)->fetchAll();
+        return \array_map(function (array $row) use ($class) {
+            $instance = new \ReflectionClass($class)->newInstanceWithoutConstructor();
+            foreach ($row as $k => $v) {
+                if (\is_string($k)) {
+                    $instance->{$k} = $v;
+                }
+            }
+            \assert(\is_a($instance, $class));
+            return $instance;
+        }, $rows);
+    }
+
     public function fetchColumn(\PDO $pdo): mixed
     {
         return $this->run($pdo)->fetchColumn();
