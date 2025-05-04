@@ -4,89 +4,35 @@ declare(strict_types=1);
 
 namespace TestUtil\Fixture;
 
+use SubstancePHP\SQL\Attributes\Column;
+use SubstancePHP\SQL\Attributes\Table;
 use SubstancePHP\SQL\Model;
 use SubstancePHP\SQL\Noop;
+use SubstancePHP\SQL\Traits\ActsAsModel;
 
 /**
  * @implements Model<self>
  */
+#[Table('vehicles', 'id')]
 class Vehicle implements Model
 {
+    use ActsAsModel;
+
+    #[Column('id')]
     public Noop|int $id = Noop::T;
+
+    #[Column('kind')]
     public Noop|string $kind = Noop::T;
+
+    #[Column('make')]
     public Noop|string $make = Noop::T;
+
+    #[Column('model')]
     public Noop|string $model = Noop::T;
+
+    #[Column('year')]
     public Noop|int $year = Noop::T;
+
+    #[Column('brief_description')]
     public Noop|string|null $briefDescription = Noop::T;
-
-    #[\Override]
-    public static function makeDefault()
-    {
-        return new self();
-    }
-
-    #[\Override]
-    public static function getTableName(): string
-    {
-        return 'vehicles';
-    }
-
-    #[\Override]
-    public static function getPrimaryKeyColumn(): string
-    {
-        return 'id';
-    }
-
-    /**
-     * @throws \Exception
-     */
-    #[\Override]
-    public function getPrimaryKey(): int
-    {
-        if ($this->id === Noop::T) {
-            throw new \Exception();
-        }
-        return $this->id;
-    }
-
-    #[\Override]
-    public static function getColumns(): array
-    {
-        return [
-            'id',
-            'kind',
-            'make',
-            'model',
-            'year',
-            'briefDescription' => 'brief_description',
-        ];
-    }
-
-    #[\Override]
-    public function readFromQueryResult(array $cell): void
-    {
-        foreach ($cell as $k => $v) {
-            if (\is_string($k)) {
-                $this->{$k} = $v;
-            }
-        }
-    }
-
-    #[\Override]
-    public function getWriteableValues(): array
-    {
-        $values = [];
-        foreach (self::getColumns() as $k => $v) {
-            if (\is_string($k)) {
-                if ($this->{$k} !== Noop::T) {
-                    $values[$v] = $this->{$k};
-                }
-            } else {
-                if ($this->{$v} !== Noop::T) {
-                    $values[$v] = $this->{$v};
-                }
-            }
-        }
-        return $values;
-    }
 }

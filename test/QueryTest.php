@@ -8,7 +8,6 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use SubstancePHP\SQL\Query;
 use PHPUnit\Framework\TestCase;
-use TestUtil\Fixture\Vehicle;
 
 #[CoversClass(Query::class)]
 final class QueryTest extends TestCase
