@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace SubstancePHP\SQL\Traits;
 
+use PhpParser\Node\Expr\AssignOp\Mod;
 use SubstancePHP\SQL\Attributes\Column;
 use SubstancePHP\SQL\Attributes\Table;
+use SubstancePHP\SQL\ModelQuery;
 use SubstancePHP\SQL\Noop;
 
 trait ActsAsModel
@@ -38,11 +40,7 @@ trait ActsAsModel
 
     public function getPrimaryKey(): mixed
     {
-        $value = $this->{self::getPrimaryKeyColumn()};
-        if ($value === Noop::T) {
-            throw new \Exception();
-        }
-        return $value;
+        return $this->{self::getPrimaryKeyColumn()};
     }
 
     /** @return string[] */
@@ -104,5 +102,41 @@ trait ActsAsModel
     public static function makeDefault(): self
     {
         return new self();
+    }
+
+    /** @return ModelQuery<$this> */
+    public function insert(): ModelQuery
+    {
+        return ModelQuery::insert($this);
+    }
+
+    /** @return ModelQuery<self> */
+    public static function find(mixed $primaryKey): ModelQuery
+    {
+        return ModelQuery::find(self::class, $primaryKey);
+    }
+
+    /** @return ModelQuery<self> */
+    public static function selectAll(): ModelQuery
+    {
+        return ModelQuery::selectFrom(self::class);
+    }
+
+    /** @return ModelQuery<$this> */
+    public function update(): ModelQuery
+    {
+        return ModelQuery::update($this);
+    }
+
+    /** @return ModelQuery<$this> */
+    public function save(): ModelQuery
+    {
+        return ModelQuery::save($this);
+    }
+
+    /** @return ModelQuery<$this> */
+    public function delete(): ModelQuery
+    {
+        return ModelQuery::delete($this);
     }
 }

@@ -212,8 +212,9 @@ class ModelQuery
      * @param M $model
      * @return self<M>
      */
-    public static function patch($model): self
+    public static function update($model): self
     {
+        // FIXNOW Error out if primary key unpopulated.
         $class = \get_class($model);
         $modelQuery = new self($class);
         $updates = $model->getWriteableValues();
@@ -239,13 +240,41 @@ class ModelQuery
     }
 
     /**
-     * @param class-string<T> $class
-     * @return self<T>
+     * @template M of Model
+     * @param M $model
+     * @return self<M>
+     */
+    public static function save($model): self
+    {
+        $primaryKey = $model->getPrimaryKey();
+        return ($primaryKey ?? Noop::T) === Noop::T ? self::insert($model) : self::update($model);
+    }
+
+    /**
+     * @template M of Model
+     * @param class-string<M> $class
+     * @return self<M>
      */
     public static function deleteFrom(string $class): self
     {
         $modelQuery = new self($class);
         $modelQuery->query->appendDeleteFrom($class::getTableName());
+        return $modelQuery;
+    }
+
+    /**
+     * @template M of Model
+     * @param M $model
+     * @return self<M>
+     */
+    public static function delete($model): self
+    {
+        // FIXNOW Error out if primary key unpopulated.
+        $class = \get_class($model);
+        $modelQuery = new self($class);
+        $modelQuery->query
+            ->appendDeleteFrom($class::getTableName())
+            ->where([$class::getPrimaryKeyColumn() => $model->getPrimaryKey()]);
         return $modelQuery;
     }
 
