@@ -10,7 +10,7 @@ use PHPUnit\Framework\TestCase;
 use SubstancePHP\SQL\ModelQuery;
 use SubstancePHP\SQL\Noop;
 use SubstancePHP\SQL\Query;
-use TestUtil\Fixture\Vehicle;
+use TestUtil\Fixture\Vehicles\VehicleTableSchema;
 
 #[CoversClass(ModelQuery::class)]
 final class ActsAsModelTest extends TestCase
@@ -37,7 +37,7 @@ final class ActsAsModelTest extends TestCase
     #[Test]
     public function insertAndFindFirst(): void
     {
-        $vehicle = new Vehicle();
+        $vehicle = new VehicleTableSchema();
         $vehicle->kind = 'car';
         $vehicle->make = 'Ford';
         $vehicle->model = 'Falcon';
@@ -45,14 +45,14 @@ final class ActsAsModelTest extends TestCase
         $vehicle->briefDescription = 'flagship sedan';
         $vehicle->insert()->run($this->pdo);
 
-        $retrieved = Vehicle::find(1)->first($this->pdo);
+        $retrieved = VehicleTableSchema::find(1)->first($this->pdo);
         $this->assertSame('Falcon', $retrieved->model);
     }
 
     #[Test]
     public function insertSelectUpdateSaveDelete(): void
     {
-        $vehicle = new Vehicle();
+        $vehicle = new VehicleTableSchema();
         $vehicle->kind = 'car';
         $vehicle->make = 'Ford';
         $vehicle->model = 'Falcon';
@@ -60,7 +60,7 @@ final class ActsAsModelTest extends TestCase
         $vehicle->briefDescription = 'flagship sedan';
         $vehicle->insert()->run($this->pdo);
 
-        $vehicle = new Vehicle();
+        $vehicle = new VehicleTableSchema();
         $vehicle->kind = 'car';
         $vehicle->make = 'Holden';
         $vehicle->model = 'Commodore';
@@ -68,7 +68,7 @@ final class ActsAsModelTest extends TestCase
         $vehicle->briefDescription = 'flagship sedan';
         $vehicle->insert()->run($this->pdo);
 
-        $vehicle = new Vehicle();
+        $vehicle = new VehicleTableSchema();
         $vehicle->kind = 'bike';
         $vehicle->make = 'Yamaha';
         $vehicle->model = 'Enduro';
@@ -76,7 +76,7 @@ final class ActsAsModelTest extends TestCase
         $vehicle->briefDescription = 'motorbike';
         $vehicle->insert()->run($this->pdo);
 
-        $results = Vehicle::selectAll()
+        $results = VehicleTableSchema::selectAll()
             ->where(['year' => 2000])
             ->orderBy(['model'])
             ->fetch($this->pdo);
@@ -86,26 +86,26 @@ final class ActsAsModelTest extends TestCase
         $this->assertSame(2, $results[0]->id);
         $this->assertSame(1, $results[1]->id);
 
-        $holden = Vehicle::makeDefault();
+        $holden = VehicleTableSchema::makeDefault();
         $holden->id = 2;
         $holden->year = 1996;
         $holden->model = 'Berina';
         $holden->briefDescription = null;
         $holden->update()->run($this->pdo);
 
-        $results = Vehicle::selectAll()->where(['id' => 2])->fetch($this->pdo);
+        $results = VehicleTableSchema::selectAll()->where(['id' => 2])->fetch($this->pdo);
         $this->assertCount(1, $results);
         $this->assertNull($results[0]->briefDescription);
         $this->assertSame('Berina', $results[0]->model);
         $this->assertSame(1996, $results[0]->year);
         $this->assertSame('Holden', $results[0]->make);
 
-        $vehicle = Vehicle::find(2)->first($this->pdo);
+        $vehicle = VehicleTableSchema::find(2)->first($this->pdo);
         $vehicle->delete()->run($this->pdo);
-        $results = Vehicle::selectAll()->where(['id' => 2])->fetch($this->pdo);
+        $results = VehicleTableSchema::selectAll()->where(['id' => 2])->fetch($this->pdo);
         $this->assertCount(0, $results);
 
-        $vehicle = new Vehicle();
+        $vehicle = new VehicleTableSchema();
         $vehicle->kind = 'car';
         $vehicle->make = 'Honda';
         $vehicle->model = 'Civic';
@@ -114,7 +114,7 @@ final class ActsAsModelTest extends TestCase
         $this->assertSame(Noop::T, $vehicle->id);
         define('TRY_IT', true);
         $vehicle->save()->run($this->pdo);
-        $vehicle = Vehicle::selectAll()->where(['model' => 'Civic'])->first($this->pdo);
+        $vehicle = VehicleTableSchema::selectAll()->where(['model' => 'Civic'])->first($this->pdo);
         $this->assertSame('Civic', $vehicle->model);
         $this->assertIsInt($vehicle->id);
     }

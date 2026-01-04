@@ -6,10 +6,10 @@ namespace Test;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
-use SubstancePHP\SQL\ModelQuery;
 use PHPUnit\Framework\TestCase;
+use SubstancePHP\SQL\ModelQuery;
 use SubstancePHP\SQL\Query;
-use TestUtil\Fixture\Vehicle;
+use TestUtil\Fixture\Vehicles\VehicleTableSchema;
 
 #[CoversClass(ModelQuery::class)]
 final class ModelQueryTest extends TestCase
@@ -36,7 +36,7 @@ final class ModelQueryTest extends TestCase
     #[Test]
     public function findAndFetchFirst(): void
     {
-        $vehicle = new Vehicle();
+        $vehicle = new VehicleTableSchema();
         $vehicle->kind = 'car';
         $vehicle->make = 'Ford';
         $vehicle->model = 'Falcon';
@@ -44,14 +44,14 @@ final class ModelQueryTest extends TestCase
         $vehicle->briefDescription = 'flagship sedan';
         ModelQuery::insert($vehicle)->run($this->pdo);
 
-        $retrieved = ModelQuery::find(Vehicle::class, 1)->first($this->pdo);
+        $retrieved = ModelQuery::find(VehicleTableSchema::class, 1)->first($this->pdo);
         $this->assertSame('Falcon', $retrieved->model);
     }
 
     #[Test]
     public function insertSelectUpdateDelete(): void
     {
-        $vehicle = new Vehicle();
+        $vehicle = new VehicleTableSchema();
         $vehicle->kind = 'car';
         $vehicle->make = 'Ford';
         $vehicle->model = 'Falcon';
@@ -59,7 +59,7 @@ final class ModelQueryTest extends TestCase
         $vehicle->briefDescription = 'flagship sedan';
         ModelQuery::insert($vehicle)->run($this->pdo);
 
-        $vehicle = new Vehicle();
+        $vehicle = new VehicleTableSchema();
         $vehicle->kind = 'car';
         $vehicle->make = 'Holden';
         $vehicle->model = 'Commodore';
@@ -67,7 +67,7 @@ final class ModelQueryTest extends TestCase
         $vehicle->briefDescription = 'flagship sedan';
         ModelQuery::insert($vehicle)->run($this->pdo);
 
-        $vehicle = new Vehicle();
+        $vehicle = new VehicleTableSchema();
         $vehicle->kind = 'bike';
         $vehicle->make = 'Yamaha';
         $vehicle->model = 'Enduro';
@@ -75,7 +75,7 @@ final class ModelQueryTest extends TestCase
         $vehicle->briefDescription = 'motorbike';
         ModelQuery::insert($vehicle)->run($this->pdo);
 
-        $results = ModelQuery::selectFrom(Vehicle::class)
+        $results = ModelQuery::selectFrom(VehicleTableSchema::class)
             ->where(['year' => 2000])
             ->orderBy(['model'])
             ->fetch($this->pdo);
@@ -85,22 +85,22 @@ final class ModelQueryTest extends TestCase
         $this->assertSame(2, $results[0]->id);
         $this->assertSame(1, $results[1]->id);
 
-        $holden = Vehicle::makeDefault();
+        $holden = VehicleTableSchema::makeDefault();
         $holden->id = 2;
         $holden->year = 1996;
         $holden->model = 'Berina';
         $holden->briefDescription = null;
         ModelQuery::update($holden)->run($this->pdo);
 
-        $results = ModelQuery::selectFrom(Vehicle::class)->where(['id' => 2])->fetch($this->pdo);
+        $results = ModelQuery::selectFrom(VehicleTableSchema::class)->where(['id' => 2])->fetch($this->pdo);
         $this->assertCount(1, $results);
         $this->assertNull($results[0]->briefDescription);
         $this->assertSame('Berina', $results[0]->model);
         $this->assertSame(1996, $results[0]->year);
         $this->assertSame('Holden', $results[0]->make);
 
-        ModelQuery::deleteFrom(Vehicle::class)->where(['id' => 2])->run($this->pdo);
-        $results = ModelQuery::selectFrom(Vehicle::class)->where(['id' => 2])->fetch($this->pdo);
+        ModelQuery::deleteFrom(VehicleTableSchema::class)->where(['id' => 2])->run($this->pdo);
+        $results = ModelQuery::selectFrom(VehicleTableSchema::class)->where(['id' => 2])->fetch($this->pdo);
         $this->assertCount(0, $results);
     }
 }
