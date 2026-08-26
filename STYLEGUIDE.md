@@ -1,5 +1,6 @@
 * The delinter is authoritative and captures most formatting questions, but below guidance should also be followed
-* Line length <= 110 for code in all languages, unless very strong readability case or literally impossible
+* Line length <= 110 for code in all languages, including Markdown, unless very strong readability case or literally
+  impossible.
 * Function signatures, function calls and array literals can and should be on one line unless either (a) strong
   readability case not to or (b) line length limit would be exceeded. In which case, go with one
   param per line.
