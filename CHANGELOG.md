@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## v0.5.0
+
+Add migration runner.
+
 ## v0.4.0
 
 `Query::fetchModels` method for easily transforming a SELECT query into an array of typed objects.
