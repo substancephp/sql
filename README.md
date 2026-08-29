@@ -27,6 +27,42 @@ $rows = Query::select(['x', 'y'])->from('things')->fetchAll($pdo);
 
 TODO: More
 
+### Transactions
+
+`Transaction::run` runs a callback inside a transaction, which is committed if the callback returns, and
+rolled back if it throws. It returns whatever the callback returns.
+
+```php
+use SubstancePHP\SQL\Transaction;
+
+$id = Transaction::run($pdo, function (PDO $pdo): int {
+    Query::insertInto('users', ['email' => 'someone@example.com'])->run($pdo);
+    return (int) $pdo->lastInsertId();
+});
+```
+
+Nesting is handled automatically. The outermost scope begins and commits a real transaction, while scopes
+nested inside it are delimited by savepoints, so an inner scope can fail and be rolled back on its own,
+without discarding the work of the scope enclosing it.
+
+```php
+Transaction::run($pdo, function (PDO $pdo): void {
+    Query::insertInto('users', ['email' => 'someone@example.com'])->run($pdo);
+    try {
+        Transaction::run($pdo, fn (PDO $pdo) => somethingRisky($pdo));
+    } catch (Throwable) {
+        // Only the inner scope was rolled back. The enclosing transaction is still usable, and the row
+        // inserted above will still be committed when it finishes.
+    }
+});
+```
+
+If a transaction is already in progress on the connection when the outermost scope begins, for example
+because `PDO::beginTransaction()` was called directly, then it is adopted rather than replaced. The scope
+nests inside it via a savepoint, and is left for its owner to commit or roll back.
+
+Nesting is implemented using savepoints, so it requires a database that supports them.
+
 ### Migrations
 
 `MigrationRunner` applies and reverts migrations found as PHP files in a directory. Migration files are sorted by
