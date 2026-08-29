@@ -1,5 +1,14 @@
 # CHANGELOG
 
+## v0.6.0
+
+Breaking change:
+* Simplify migration runner
+  * Migration file must now return instance of migration class, initialised with closures.
+    Variant format (arrays, strings) not allowed, to simplify surface area
+
+Also, updated and tightened project's linting setup.
+
 ## v0.5.0
 
 Add migration runner.
