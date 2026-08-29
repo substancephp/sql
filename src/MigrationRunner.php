@@ -14,7 +14,7 @@ final class MigrationRunner
         private string $table = self::DEFAULT_TABLE,
     ) {
         self::assertValidTableName($table);
-        if (!\is_dir($directory)) {
+        if (! \is_dir($directory)) {
             throw new \InvalidArgumentException("Migrations directory does not exist: $directory");
         }
     }
@@ -22,76 +22,52 @@ final class MigrationRunner
     /**
      * Apply pending migrations.
      *
-     * @return list<string> Names of the migrations that were applied.
+     * @return string[] Names of the migrations that were applied.
      */
-    public function up(?int $steps = null): array
+    public function migrate(?int $steps = null): array
     {
-        if (($steps !== null) && ($steps < 0)) {
+        if ($steps !== null && $steps < 0) {
             throw new \InvalidArgumentException('Number of steps must not be negative.');
         }
         $this->ensureSchema();
         $this->assertAppliedMigrationsArePrefixOfFiles();
-        $pending = $this->getPendingMigrations();
+        $targets = $this->getPendingMigrations();
         if ($steps !== null) {
-            $pending = \array_slice($pending, 0, $steps);
+            $targets = \array_slice($targets, 0, $steps);
         }
-        $applied = [];
-        foreach ($pending as $name) {
+        foreach ($targets as $name) {
             $migration = $this->loadMigration($name);
             $this->runInTransaction(function () use ($migration, $name): void {
-                $migration->up($this->pdo);
+                $migration->migrate($this->pdo);
                 $this->recordMigration($name);
             });
-            $applied[] = $name;
         }
-        return $applied;
+        return $targets;
     }
 
     /**
      * Revert applied migrations, most recent first.
      *
-     * @return list<string> Names of reverted migrations.
+     * @return string[] Names of reverted migrations.
      */
-    public function down(int $steps = 1): array
+    public function rollback(int $steps = 1): array
     {
         if ($steps < 0) {
             throw new \InvalidArgumentException('Number of steps must not be negative.');
         }
-        if ($steps === 0) {
+        if ($steps == 0) {
             return [];
         }
         $applied = $this->getAppliedMigrations();
         $targets = \array_slice(\array_reverse($applied), 0, $steps);
-        $reverted = [];
         foreach ($targets as $name) {
             $migration = $this->loadMigration($name);
             $this->runInTransaction(function () use ($migration, $name): void {
-                $migration->down($this->pdo);
+                $migration->rollback($this->pdo);
                 $this->removeMigration($name);
             });
-            $reverted[] = $name;
         }
-        return $reverted;
-    }
-
-    /**
-     * Alias for {@see self::up()}.
-     *
-     * @return list<string> Names of the migrations that were applied.
-     */
-    public function migrate(?int $steps = null): array
-    {
-        return $this->up($steps);
-    }
-
-    /**
-     * Alias for {@see self::down()}.
-     *
-     * @return list<string> Names of the migrations that were reverted.
-     */
-    public function rollback(int $steps = 1): array
-    {
-        return $this->down($steps);
+        return $targets;
     }
 
     /** @return list<array{name: string, status: 'applied'|'pending', applied_at: ?string}> */
@@ -100,7 +76,7 @@ final class MigrationRunner
         $applied = $this->fetchAppliedRows();
         $files = $this->getMigrationFiles();
         $missing = \array_diff(\array_keys($applied), \array_keys($files));
-        if ($missing !== []) {
+        if (\count($missing) != 0) {
             throw new \RuntimeException(
                 'Applied migrations are missing from disk: ' . \implode(', ', $missing),
             );
@@ -122,7 +98,7 @@ final class MigrationRunner
         $files = $this->getMigrationFiles();
         $applied = \array_fill_keys(\array_keys($this->fetchAppliedRows()), true);
         $missing = \array_diff(\array_keys($applied), \array_keys($files));
-        if ($missing !== []) {
+        if (\count($missing) != 0) {
             throw new \RuntimeException(
                 'Applied migrations are missing from disk: ' . \implode(', ', $missing),
             );
@@ -142,7 +118,7 @@ final class MigrationRunner
         $files = $this->getMigrationFiles();
         $applied = \array_fill_keys(\array_keys($this->fetchAppliedRows()), true);
         $missing = \array_diff(\array_keys($applied), \array_keys($files));
-        if ($missing !== []) {
+        if (\count($missing) != 0) {
             throw new \RuntimeException(
                 'Applied migrations are missing from disk: ' . \implode(', ', $missing),
             );
@@ -158,13 +134,11 @@ final class MigrationRunner
 
     private function ensureSchema(): void
     {
-        self::execSql($this->pdo, \sprintf(
-            'create table if not exists %s ('
-                . 'migration varchar(255) not null primary key, '
-                . 'applied_at timestamp not null default current_timestamp'
-                . ')',
-            $this->table,
-        ));
+        $sql = "create table if not exists {$this->table} (" .
+            "migration text not null primary key, " .
+            "applied_at timestamp not null default current_timestamp" .
+            ")";
+        self::execSql($this->pdo, $sql);
     }
 
     /** @return array<string, string> Map of migration name to applied timestamp. */
@@ -197,53 +171,13 @@ final class MigrationRunner
 
     private function loadMigration(string $name): Migration
     {
-        $files = $this->getMigrationFiles();
-        if (!isset($files[$name])) {
-            throw new \RuntimeException("Migration not found: $name");
+        $toLoad = $this->getMigrationFiles()[$name] ??
+            throw new \RuntimeException("Missing migration: $name");
+        $migration = require $toLoad;
+        if (! ($migration instanceof Migration)) {
+            throw new \RuntimeException("Migration file $toLoad must return a " . Migration::class . " instance.");
         }
-        $loaded = require $files[$name];
-        if ($loaded instanceof Migration) {
-            return $loaded;
-        }
-        if (\is_array($loaded) && isset($loaded['up'], $loaded['down'])) {
-            return new Migration(
-                self::normalizeDirection($loaded['up']),
-                self::normalizeDirection($loaded['down']),
-            );
-        }
-        throw new \RuntimeException(\sprintf(
-            'Migration file %s must return a %s instance or an array with "up" and "down" entries.',
-            $files[$name],
-            Migration::class,
-        ));
-    }
-
-    /** @return callable(\PDO): void */
-    private static function normalizeDirection(mixed $direction): callable
-    {
-        if ($direction instanceof \Closure || \is_callable($direction)) {
-            return $direction;
-        }
-        if (\is_string($direction)) {
-            return static function (\PDO $pdo) use ($direction): void {
-                self::execSql($pdo, $direction);
-            };
-        }
-        if (\is_array($direction) && \array_is_list($direction)) {
-            foreach ($direction as $statement) {
-                if (!\is_string($statement)) {
-                    throw new \RuntimeException('Each SQL statement in a migration must be a string.');
-                }
-            }
-            return static function (\PDO $pdo) use ($direction): void {
-                foreach ($direction as $statement) {
-                    self::execSql($pdo, $statement);
-                }
-            };
-        }
-        throw new \RuntimeException(
-            'Migration up/down entries must be callable, a SQL string, or a list of SQL strings.',
-        );
+        return $migration;
     }
 
     private function assertAppliedMigrationsArePrefixOfFiles(): void

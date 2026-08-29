@@ -44,16 +44,27 @@ final class MigrationRunnerTest extends TestCase
         return new MigrationRunner($this->pdo, $this->dir, $table);
     }
 
-    /**
-     * @param string|list<string> $up
-     * @param string|list<string> $down
-     */
-    private function writeSqlMigration(string $name, string|array $up, string|array $down): void
+    /** Write a migration file whose migrate/rollback closures run the given SQL. */
+    private function writeSqlMigration(string $name, string $migrate, string $rollback): void
     {
-        $this->writeMigrationFile($name, "<?php\n\ndeclare(strict_types=1);\n\nreturn [\n"
-            . "    'up' => " . \var_export($up, true) . ",\n"
-            . "    'down' => " . \var_export($down, true) . ",\n"
-            . "];\n");
+        $template = <<<'PHP'
+<?php
+
+declare(strict_types=1);
+
+return new \SubstancePHP\SQL\Migration(
+    static function (\PDO $pdo): void {
+        $pdo->exec(%s);
+    },
+    static function (\PDO $pdo): void {
+        $pdo->exec(%s);
+    },
+);
+PHP;
+        $this->writeMigrationFile(
+            $name,
+            \sprintf($template, \var_export($migrate, true), \var_export($rollback, true)),
+        );
     }
 
     private function writeMigrationFile(string $name, string $contents): void
@@ -78,7 +89,7 @@ final class MigrationRunnerTest extends TestCase
     }
 
     #[Test]
-    public function upAppliesAllPendingMigrationsAndRecordsThem(): void
+    public function migrateAppliesAllPendingMigrationsAndRecordsThem(): void
     {
         $this->writeSqlMigration(
             '001_create_users',
@@ -91,7 +102,7 @@ final class MigrationRunnerTest extends TestCase
             'drop table posts',
         );
 
-        $applied = $this->runner()->up();
+        $applied = $this->runner()->migrate();
         $this->assertSame(['001_create_users', '002_create_posts'], $applied);
         $this->assertTrue($this->tableExists('users'));
         $this->assertTrue($this->tableExists('posts'));
@@ -109,12 +120,11 @@ final class MigrationRunnerTest extends TestCase
             'drop table users',
         );
 
-        $status = $this->runner()->status();
         $this->assertSame([
             ['name' => '001_create_users', 'status' => 'pending', 'applied_at' => null],
-        ], $status);
+        ], $this->runner()->status());
 
-        $this->runner()->up();
+        $this->runner()->migrate();
         $status = $this->runner()->status();
         $this->assertSame('001_create_users', $status[0]['name']);
         $this->assertSame('applied', $status[0]['status']);
@@ -122,7 +132,7 @@ final class MigrationRunnerTest extends TestCase
     }
 
     #[Test]
-    public function upAppliesOnlyTheGivenNumberOfSteps(): void
+    public function migrateAppliesOnlyTheGivenNumberOfSteps(): void
     {
         $this->writeSqlMigration(
             '001_create_users',
@@ -135,7 +145,7 @@ final class MigrationRunnerTest extends TestCase
             'drop table posts',
         );
 
-        $applied = $this->runner()->up(1);
+        $applied = $this->runner()->migrate(1);
         $this->assertSame(['001_create_users'], $applied);
         $this->assertTrue($this->tableExists('users'));
         $this->assertFalse($this->tableExists('posts'));
@@ -143,7 +153,29 @@ final class MigrationRunnerTest extends TestCase
     }
 
     #[Test]
-    public function downRevertsTheLastMigrationByDefault(): void
+    public function migrateWithZeroStepsAppliesNothing(): void
+    {
+        $this->writeSqlMigration(
+            '001_create_users',
+            'create table users (id integer primary key)',
+            'drop table users',
+        );
+
+        $this->assertSame([], $this->runner()->migrate(0));
+        $this->assertFalse($this->tableExists('users'));
+        $this->assertSame(['001_create_users'], $this->runner()->getPendingMigrations());
+    }
+
+    #[Test]
+    public function migrateRejectsNegativeSteps(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('must not be negative');
+        $this->runner()->migrate(-1);
+    }
+
+    #[Test]
+    public function rollbackRevertsTheLastMigrationByDefault(): void
     {
         $this->writeSqlMigration(
             '001_create_users',
@@ -155,9 +187,9 @@ final class MigrationRunnerTest extends TestCase
             'create table posts (id integer primary key autoincrement, title varchar(255))',
             'drop table posts',
         );
-        $this->runner()->up();
+        $this->runner()->migrate();
 
-        $reverted = $this->runner()->down();
+        $reverted = $this->runner()->rollback();
         $this->assertSame(['002_create_posts'], $reverted);
         $this->assertTrue($this->tableExists('users'));
         $this->assertFalse($this->tableExists('posts'));
@@ -165,7 +197,7 @@ final class MigrationRunnerTest extends TestCase
     }
 
     #[Test]
-    public function downRevertsTheGivenNumberOfMigrationsInReverseOrder(): void
+    public function rollbackRevertsTheGivenNumberOfMigrationsInReverseOrder(): void
     {
         $this->writeSqlMigration(
             '001_create_users',
@@ -177,9 +209,9 @@ final class MigrationRunnerTest extends TestCase
             'create table posts (id integer primary key autoincrement, title varchar(255))',
             'drop table posts',
         );
-        $this->runner()->up();
+        $this->runner()->migrate();
 
-        $reverted = $this->runner()->down(2);
+        $reverted = $this->runner()->rollback(2);
         $this->assertSame(['002_create_posts', '001_create_users'], $reverted);
         $this->assertFalse($this->tableExists('users'));
         $this->assertFalse($this->tableExists('posts'));
@@ -187,48 +219,55 @@ final class MigrationRunnerTest extends TestCase
     }
 
     #[Test]
-    public function migrationArrayMayContainMultipleSqlStatements(): void
+    public function rollbackWithZeroStepsRevertsNothing(): void
     {
         $this->writeSqlMigration(
-            '001_create_two_tables',
-            [
-                'create table alpha (id integer primary key)',
-                'create table beta (id integer primary key)',
-            ],
-            [
-                'drop table alpha',
-                'drop table beta',
-            ],
+            '001_create_users',
+            'create table users (id integer primary key)',
+            'drop table users',
         );
+        $this->runner()->migrate();
 
-        $this->assertSame(['001_create_two_tables'], $this->runner()->up());
-        $this->assertTrue($this->tableExists('alpha'));
-        $this->assertTrue($this->tableExists('beta'));
-
-        $this->assertSame(['001_create_two_tables'], $this->runner()->down());
-        $this->assertFalse($this->tableExists('alpha'));
-        $this->assertFalse($this->tableExists('beta'));
+        $this->assertSame([], $this->runner()->rollback(0));
+        $this->assertTrue($this->tableExists('users'));
+        $this->assertSame(['001_create_users'], $this->runner()->getAppliedMigrations());
     }
 
     #[Test]
-    public function migrationFileMayReturnMigrationInstance(): void
+    public function rollbackRejectsNegativeSteps(): void
     {
-        $this->writeMigrationFile('001_gamma', <<<'PHP'
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('must not be negative');
+        $this->runner()->rollback(-1);
+    }
+
+    #[Test]
+    public function migrationClosuresMayRunMultipleStatements(): void
+    {
+        $this->writeMigrationFile('001_create_two_tables', <<<'PHP'
 <?php
 
 declare(strict_types=1);
 
 return new \SubstancePHP\SQL\Migration(
-    fn (\PDO $pdo) => $pdo->exec('create table gamma (id integer primary key)'),
-    fn (\PDO $pdo) => $pdo->exec('drop table gamma'),
+    static function (\PDO $pdo): void {
+        $pdo->exec('create table alpha (id integer primary key)');
+        $pdo->exec('create table beta (id integer primary key)');
+    },
+    static function (\PDO $pdo): void {
+        $pdo->exec('drop table alpha');
+        $pdo->exec('drop table beta');
+    },
 );
 PHP);
 
-        $this->assertSame(['001_gamma'], $this->runner()->up());
-        $this->assertTrue($this->tableExists('gamma'));
+        $this->assertSame(['001_create_two_tables'], $this->runner()->migrate());
+        $this->assertTrue($this->tableExists('alpha'));
+        $this->assertTrue($this->tableExists('beta'));
 
-        $this->assertSame(['001_gamma'], $this->runner()->down());
-        $this->assertFalse($this->tableExists('gamma'));
+        $this->assertSame(['001_create_two_tables'], $this->runner()->rollback());
+        $this->assertFalse($this->tableExists('alpha'));
+        $this->assertFalse($this->tableExists('beta'));
     }
 
     #[Test]
@@ -244,17 +283,19 @@ PHP);
 
 declare(strict_types=1);
 
-return [
-    'up' => function (\PDO $pdo): void {
+return new \SubstancePHP\SQL\Migration(
+    static function (\PDO $pdo): void {
         $pdo->exec('create table should_not_exist (id integer primary key)');
         throw new \RuntimeException('boom');
     },
-    'down' => 'drop table should_not_exist',
-];
+    static function (\PDO $pdo): void {
+        $pdo->exec('drop table should_not_exist');
+    },
+);
 PHP);
 
         try {
-            $this->runner()->up();
+            $this->runner()->migrate();
             $this->fail('Expected a RuntimeException to be thrown.');
         } catch (\RuntimeException $exception) {
             $this->assertSame('boom', $exception->getMessage());
@@ -266,7 +307,7 @@ PHP);
     }
 
     #[Test]
-    public function upRefusesOutOfOrderPendingMigrations(): void
+    public function migrateRefusesOutOfOrderPendingMigrations(): void
     {
         $this->writeSqlMigration(
             '001_create_users',
@@ -278,7 +319,7 @@ PHP);
             'create table posts (id integer primary key autoincrement, title varchar(255))',
             'drop table posts',
         );
-        $this->runner()->up();
+        $this->runner()->migrate();
 
         $this->writeSqlMigration(
             '000_late',
@@ -288,7 +329,7 @@ PHP);
 
         $this->expectException(\RuntimeException::class);
         $this->expectExceptionMessage('out of order');
-        $this->runner()->up();
+        $this->runner()->migrate();
     }
 
     #[Test]
@@ -299,7 +340,7 @@ PHP);
             'create table users (id integer primary key autoincrement, name varchar(255))',
             'drop table users',
         );
-        $this->runner()->up();
+        $this->runner()->migrate();
         \unlink($this->dir . '/001_create_users.php');
 
         $this->expectException(\RuntimeException::class);
@@ -313,22 +354,8 @@ PHP);
         $this->writeMigrationFile('001_invalid', "<?php\n\nreturn 'not a migration';\n");
 
         $this->expectException(\RuntimeException::class);
-        $this->expectExceptionMessage('must return');
-        $this->runner()->up();
-    }
-
-    #[Test]
-    public function invalidDirectionIsRejected(): void
-    {
-        $this->writeMigrationFile(
-            '001_invalid_direction',
-            "<?php\n\nreturn ['up' => ['create table x (id integer primary key)', 123], "
-                . "'down' => 'drop table x'];\n",
-        );
-
-        $this->expectException(\RuntimeException::class);
-        $this->expectExceptionMessage('must be a string');
-        $this->runner()->up();
+        $this->expectExceptionMessage('must return a');
+        $this->runner()->migrate();
     }
 
     #[Test]

@@ -7,28 +7,28 @@ namespace SubstancePHP\SQL;
 final class Migration
 {
     /** @var \Closure */
-    private \Closure $up;
+    private \Closure $migrate;
 
     /** @var \Closure */
-    private \Closure $down;
+    private \Closure $rollback;
 
     /**
-     * @param callable(\PDO): void $up
-     * @param callable(\PDO): void $down
+     * @param callable(\PDO): void $migrate
+     * @param callable(\PDO): void $rollback
      */
-    public function __construct(callable $up, callable $down)
+    public function __construct(callable $migrate, callable $rollback)
     {
-        $this->up = \Closure::fromCallable($up);
-        $this->down = \Closure::fromCallable($down);
+        $this->migrate = \Closure::fromCallable($migrate);
+        $this->rollback = \Closure::fromCallable($rollback);
     }
 
-    public function up(\PDO $pdo): void
+    public function migrate(\PDO $pdo): void
     {
-        ($this->up)($pdo);
+        ($this->migrate)($pdo);
     }
 
-    public function down(\PDO $pdo): void
+    public function rollback(\PDO $pdo): void
     {
-        ($this->down)($pdo);
+        ($this->rollback)($pdo);
     }
 }
