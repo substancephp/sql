@@ -46,6 +46,7 @@ final class ActsAsModelTest extends TestCase
         $vehicle->insert()->run($this->pdo);
 
         $retrieved = Vehicle::find(1)->first($this->pdo);
+        $this->assertNotNull($retrieved);
         $this->assertSame('Falcon', $retrieved->model);
     }
 
@@ -101,6 +102,7 @@ final class ActsAsModelTest extends TestCase
         $this->assertSame('Holden', $results[0]->make);
 
         $vehicle = Vehicle::find(2)->first($this->pdo);
+        $this->assertNotNull($vehicle);
         $vehicle->delete()->run($this->pdo);
         $results = Vehicle::selectAll()->where(['id' => 2])->fetch($this->pdo);
         $this->assertCount(0, $results);
@@ -115,6 +117,7 @@ final class ActsAsModelTest extends TestCase
         define('TRY_IT', true);
         $vehicle->save()->run($this->pdo);
         $vehicle = Vehicle::selectAll()->where(['model' => 'Civic'])->first($this->pdo);
+        $this->assertNotNull($vehicle);
         $this->assertSame('Civic', $vehicle->model);
         $this->assertIsInt($vehicle->id);
     }

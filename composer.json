@@ -23,24 +23,24 @@
         "ext-sqlite3": "*",
         "phpunit/phpunit": "^11.0",
         "phpstan/phpstan": "^2.1",
-        "squizlabs/php_codesniffer": "*"
+        "friendsofphp/php-cs-fixer": "^3.95"
     },
     "minimum-stability": "stable",
     "scripts": {
-        "qa": ["@stan", "@test", "@cs"],
-        "stan": "vendor/bin/phpstan analyse --level=7 src test testutil",
-        "cs": "vendor/bin/phpcs --standard=PSR12 src test testutil",
+        "qa": ["@lint", "@stan", "@test"],
+        "lint": "vendor/bin/php-cs-fixer check",
+        "delint": "vendor/bin/php-cs-fixer fix",
+        "stan": "vendor/bin/phpstan analyse --level=8 --memory-limit=1G src test testutil",
         "test": "XDEBUG_MODE=coverage vendor/bin/phpunit --coverage-text test",
-        "serve-coverage-report": "php -S localhost:3000 -t html-coverage",
-        "cbf": "vendor/bin/phpcbf --standard=PSR12 src test testutil"
+        "serve-coverage-report": "php -S localhost:3000 -t html-coverage"
     },
     "scripts-descriptions": {
-      "qa": "Run all the code quality checks",
-      "test": "Run the tests",
+      "qa": "Run all the code quality checks; don't auto-fix anything",
+      "lint": "Check for lint",
+      "delint": "De-lint",
       "stan": "Run static analysis",
-      "cs": "Run PHP_CodeSniffer to detect linting issues",
-      "serve-coverage-report": "Serve an HTML code coverage report",
-      "cbf": "Auto-fix linting any issues that can be auto-fixed"
+      "test": "Run the tests",
+      "serve-coverage-report": "Serve an HTML code coverage report"
     },
     "support": {
         "issues": "https://github.com/substancephp/sql/issues",

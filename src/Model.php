@@ -4,9 +4,7 @@ declare(strict_types=1);
 
 namespace SubstancePHP\SQL;
 
-/**
- * @template T
- */
+/** @template T */
 interface Model
 {
     /** @return T */
@@ -24,9 +22,7 @@ interface Model
     /** @return array<int|string, string> */
     public static function getColumns(): array;
 
-    /**
-     * @param array<string|int, mixed> $cell
-     */
+    /** @param array<string|int, mixed> $cell */
     public function readFromQueryResult(array $cell): void;
 
     /** @return array<string, mixed> */

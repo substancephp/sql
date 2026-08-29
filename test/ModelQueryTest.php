@@ -45,6 +45,7 @@ final class ModelQueryTest extends TestCase
         ModelQuery::insert($vehicle)->run($this->pdo);
 
         $retrieved = ModelQuery::find(Vehicle::class, 1)->first($this->pdo);
+        $this->assertNotNull($retrieved);
         $this->assertSame('Falcon', $retrieved->model);
     }
 

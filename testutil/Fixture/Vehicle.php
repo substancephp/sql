@@ -10,9 +10,7 @@ use SubstancePHP\SQL\Model;
 use SubstancePHP\SQL\Noop;
 use SubstancePHP\SQL\Traits\ActsAsModel;
 
-/**
- * @implements Model<self>
- */
+/** @implements Model<self> */
 #[Table('vehicles', 'id')]
 class Vehicle implements Model
 {

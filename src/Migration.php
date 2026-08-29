@@ -6,10 +6,8 @@ namespace SubstancePHP\SQL;
 
 final class Migration
 {
-    /** @var \Closure */
     private \Closure $migrate;
 
-    /** @var \Closure */
     private \Closure $rollback;
 
     /**

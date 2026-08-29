@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace SubstancePHP\SQL;
 
-use http\Header\Parser;
 use SubstancePHP\SQL\Internal\Literal;
 
 class Query
@@ -337,7 +336,7 @@ class Query
      * @param bool|int|float|string|Literal|null|(bool|int|float|string|Literal|null)[] $value
      * @return $this
      */
-    public function appendParam(bool|int|float|string|literal|null|array $value): self
+    public function appendParam(bool|int|float|string|Literal|null|array $value): self
     {
         if ($value instanceof Literal) {
             $this->append((string) $value);

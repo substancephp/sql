@@ -240,7 +240,7 @@ final class QueryTest extends TestCase
     {
         $this->createThingsTable();
         $query = Query::insertInto('things', ['x' => 3, 'y' => 'cool', 'z' => false])->returning(['y', '3']);
-        $this->assertSame("insert into things (x, y, z) values (?, ?, ?) returning y, 3", $query->sql);
+        $this->assertSame('insert into things (x, y, z) values (?, ?, ?) returning y, 3', $query->sql);
         // Testing against SQLite so can't execute this one as RETURNING is postgres-specific.
     }
 

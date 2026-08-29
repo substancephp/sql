@@ -12,9 +12,7 @@ use SubstancePHP\SQL\Noop;
 
 trait ActsAsModel
 {
-    /**
-     * @throws \Exception
-     */
+    /** @throws \Exception */
     public static function getTableName(): string
     {
         return self::getTableAttributeInstance()->name;

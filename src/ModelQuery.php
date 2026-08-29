@@ -4,12 +4,9 @@ declare(strict_types=1);
 
 namespace SubstancePHP\SQL;
 
-use PhpParser\Node\Expr\AssignOp\Mod;
 use SubstancePHP\SQL\Internal\Literal;
 
-/**
- * @template T of Model
- */
+/** @template T of Model */
 class ModelQuery
 {
     private Query $query;
@@ -17,9 +14,7 @@ class ModelQuery
     /** @var class-string<T> */
     private string $class;
 
-    /**
-     * @param class-string<T> $class
-     */
+    /** @param class-string<T> $class */
     public function __construct(string $class)
     {
         $this->query = new Query();
@@ -46,7 +41,6 @@ class ModelQuery
     }
 
     /**
-     * @param \PDO $pdo
      * @return T[]
      * @throws \ReflectionException
      */
@@ -321,7 +315,7 @@ class ModelQuery
      * @param bool|int|float|string|Literal|null|(bool|int|float|string|Literal|null)[] $value
      * @return $this
      */
-    public function appendParam(bool|int|float|string|literal|null|array $value): self
+    public function appendParam(bool|int|float|string|Literal|null|array $value): self
     {
         $this->query->appendParam($value);
         return $this;

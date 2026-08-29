@@ -2,3 +2,4 @@
 .idea
 .phpunit.cache
 html-coverage
+.php-cs-fixer.cache

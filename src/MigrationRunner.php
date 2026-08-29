@@ -125,7 +125,7 @@ final class MigrationRunner
         }
         $pending = [];
         foreach (\array_keys($files) as $name) {
-            if (!isset($applied[$name])) {
+            if (! isset($applied[$name])) {
                 $pending[] = $name;
             }
         }
@@ -135,9 +135,9 @@ final class MigrationRunner
     private function ensureSchema(): void
     {
         $sql = "create table if not exists {$this->table} (" .
-            "migration text not null primary key, " .
-            "applied_at timestamp not null default current_timestamp" .
-            ")";
+            'migration text not null primary key, ' .
+            'applied_at timestamp not null default current_timestamp' .
+            ')';
         self::execSql($this->pdo, $sql);
     }
 
@@ -175,7 +175,7 @@ final class MigrationRunner
             throw new \RuntimeException("Missing migration: $name");
         $migration = require $toLoad;
         if (! ($migration instanceof Migration)) {
-            throw new \RuntimeException("Migration file $toLoad must return a " . Migration::class . " instance.");
+            throw new \RuntimeException("Migration file $toLoad must return a " . Migration::class . ' instance.');
         }
         return $migration;
     }
@@ -188,7 +188,7 @@ final class MigrationRunner
             if (isset($applied[$name])) {
                 if ($seenPending) {
                     throw new \RuntimeException(
-                        "Cannot migrate: applied migrations are out of order. "
+                        'Cannot migrate: applied migrations are out of order. '
                             . "A pending migration appears before applied migration $name.",
                     );
                 }
@@ -200,7 +200,7 @@ final class MigrationRunner
 
     private function runInTransaction(callable $callback): void
     {
-        $ownsTransaction = !$this->pdo->inTransaction();
+        $ownsTransaction = ! $this->pdo->inTransaction();
         if ($ownsTransaction && ($this->pdo->beginTransaction() === false)) {
             throw new \RuntimeException('Could not start a transaction.');
         }
@@ -210,6 +210,7 @@ final class MigrationRunner
                 throw new \RuntimeException('Could not commit the transaction.');
             }
         } catch (\Throwable $throwable) {
+            /** @phpstan-ignore-next-line */
             if ($ownsTransaction && $this->pdo->inTransaction()) {
                 $this->pdo->rollBack();
             }
