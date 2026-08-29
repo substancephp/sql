@@ -37,7 +37,7 @@ final class MigrationRunner
         }
         foreach ($targets as $name) {
             $migration = $this->loadMigration($name);
-            $this->runInTransaction(function () use ($migration, $name): void {
+            Transaction::run($this->pdo, function () use ($migration, $name): void {
                 $migration->migrate($this->pdo);
                 $this->recordMigration($name);
             });
@@ -62,7 +62,7 @@ final class MigrationRunner
         $targets = \array_slice(\array_reverse($applied), 0, $steps);
         foreach ($targets as $name) {
             $migration = $this->loadMigration($name);
-            $this->runInTransaction(function () use ($migration, $name): void {
+            Transaction::run($this->pdo, function () use ($migration, $name): void {
                 $migration->rollback($this->pdo);
                 $this->removeMigration($name);
             });
@@ -195,26 +195,6 @@ final class MigrationRunner
             } else {
                 $seenPending = true;
             }
-        }
-    }
-
-    private function runInTransaction(callable $callback): void
-    {
-        $ownsTransaction = ! $this->pdo->inTransaction();
-        if ($ownsTransaction && ($this->pdo->beginTransaction() === false)) {
-            throw new \RuntimeException('Could not start a transaction.');
-        }
-        try {
-            $callback();
-            if ($ownsTransaction && ($this->pdo->commit() === false)) {
-                throw new \RuntimeException('Could not commit the transaction.');
-            }
-        } catch (\Throwable $throwable) {
-            /** @phpstan-ignore-next-line */
-            if ($ownsTransaction && $this->pdo->inTransaction()) {
-                $this->pdo->rollBack();
-            }
-            throw $throwable;
         }
     }
 

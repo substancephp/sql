@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## v0.7.0
+
+Add transaction utility: `Transaction::run`.
+
 ## v0.6.0
 
 Breaking change:
