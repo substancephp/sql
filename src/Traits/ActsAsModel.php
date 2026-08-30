@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace SubstancePHP\SQL\Traits;
 
-use PhpParser\Node\Expr\AssignOp\Mod;
 use SubstancePHP\SQL\Attributes\Column;
 use SubstancePHP\SQL\Attributes\Table;
 use SubstancePHP\SQL\ModelQuery;
@@ -72,9 +71,10 @@ trait ActsAsModel
     /** @param array<int|string, mixed> $cell */
     public function readFromQueryResult(array $cell): void
     {
-        foreach ($cell as $k => $v) {
-            if (\is_string($k)) {
-                $this->{$k} = $v;
+        foreach (self::getColumns() as $key => $column) {
+            $property = \is_int($key) ? $column : $key;
+            if (\array_key_exists($property, $cell)) {
+                $this->{$property} = $cell[$property];
             }
         }
     }

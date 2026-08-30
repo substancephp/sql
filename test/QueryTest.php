@@ -50,6 +50,38 @@ final class QueryTest extends TestCase
     }
 
     #[Test]
+    public function insertRowsAndOnConflictUpdate(): void
+    {
+        $this->createThingsTable();
+        $inserted = Query::insertRows(
+            $this->pdo,
+            'things',
+            ['x', 'y'],
+            [
+                ['x' => 1, 'y' => 'one'],
+                ['x' => 2, 'y' => 'two'],
+                ['x' => 3, 'y' => 'three'],
+            ],
+            2,
+        );
+        $this->assertSame(3, $inserted);
+        $this->assertSame(3, (int) Query::select(['x'])->from('things')->count($this->pdo));
+
+        new Query()->append('create table things_unique (x primary key, y)')->run($this->pdo);
+        $query = Query::insertInto('things_unique', ['x' => 2, 'y' => 'TWO'])
+            ->onConflictUpdate(['x'], ['y']);
+        $this->assertSame(
+            'insert into things_unique (x, y) values (?, ?) on conflict (x) do update set y = excluded.y',
+            $query->sql,
+        );
+        $query->run($this->pdo);
+        $this->assertSame(
+            'TWO',
+            Query::select(['y'])->from('things_unique')->where(['x' => 2])->fetchColumn($this->pdo),
+        );
+    }
+
+    #[Test]
     public function fetchColumn(): void
     {
         $query = new Query();
@@ -73,6 +105,11 @@ final class QueryTest extends TestCase
         Query::insertInto('things', ['x' => 'nice', 'y' => 2, 'z' => 5.6])->run($this->pdo);
         $query = Query::select(['x', 'y', 'stuff' => 'z'])->from('things');
         $this->assertSame('select x, y, z as stuff from things', $query->sql);
+        $this->assertSame(
+            'select x as "userId" from things',
+            Query::select(['userId' => 'x'])->from('things')->sql,
+        );
+        $this->assertSame('select x as x from things', Query::select(['x' => 'x'])->from('things')->sql);
         $results = $query->fetchAll($this->pdo);
         $this->assertSame(2, count($results));
         $this->assertSame(2, $results[1]['y']);
@@ -162,6 +199,23 @@ final class QueryTest extends TestCase
         $this->expectException(\RuntimeException::class);
         $query->appendSelect(['x', 'y'])->from('things')
             ->where(['x' => 3, 'y' => 'cool', 'z' => null], '>', 'or');
+    }
+
+    #[Test]
+    public function whereWithFunctionWrappedValue(): void
+    {
+        $query = Query::select(['x'])->from('things')
+            ->where([
+                'lower(name)' => function (Query $q): void {
+                    $q->append('lower(')->appendParam('someone@example.com')->append(')');
+                },
+            ]);
+
+        $this->assertSame(
+            'select x from things where ( lower(name) = lower( ? ) )',
+            $query->sql,
+        );
+        $this->assertSame(['someone@example.com'], $query->params);
     }
 
     #[Test]
