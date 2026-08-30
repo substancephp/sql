@@ -22,6 +22,7 @@ return (new Config())
         'no_superfluous_elseif' => true,
         'no_superfluous_phpdoc_tags' => ['allow_hidden_params' => true],
         'no_trailing_comma_in_singleline_array' => true,
+        'no_unused_imports' => true,
         'not_operator_with_successor_space' => true,
         'phpdoc_line_span' => [
             'case' => 'single',

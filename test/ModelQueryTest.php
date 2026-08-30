@@ -156,6 +156,29 @@ final class ModelQueryTest extends TestCase
     }
 
     #[Test]
+    public function groupByBuildsAndRuns(): void
+    {
+        $vehicle = new Vehicle();
+        $vehicle->kind = 'car';
+        $vehicle->make = 'Ford';
+        $vehicle->model = 'Falcon';
+        $vehicle->year = 2000;
+        $vehicle->briefDescription = 'flagship sedan';
+        ModelQuery::insert($vehicle)->run($this->pdo);
+
+        $vehicle = new Vehicle();
+        $vehicle->kind = 'bike';
+        $vehicle->make = 'Yamaha';
+        $vehicle->model = 'Enduro';
+        $vehicle->year = 1977;
+        $vehicle->briefDescription = 'motorbike';
+        ModelQuery::insert($vehicle)->run($this->pdo);
+
+        $grouped = ModelQuery::selectFrom(Vehicle::class)->groupBy(['kind'])->fetch($this->pdo);
+        $this->assertCount(2, $grouped);
+    }
+
+    #[Test]
     public function updateWithoutPrimaryKeyThrows(): void
     {
         $vehicle = Vehicle::makeDefault();
