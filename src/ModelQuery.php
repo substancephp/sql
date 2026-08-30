@@ -122,7 +122,7 @@ class ModelQuery
      */
     public function groupBy(array $fields): self
     {
-        $this->query > $this->groupBy($fields);
+        $this->query->groupBy($fields);
         return $this;
     }
 
