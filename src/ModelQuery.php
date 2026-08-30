@@ -11,6 +11,9 @@ class ModelQuery
 {
     private Query $query;
 
+    /** The same query without its select clause, for building aggregates over it. */
+    private Query $tailQuery;
+
     /** @var class-string<T> */
     private string $class;
 
@@ -18,6 +21,7 @@ class ModelQuery
     public function __construct(string $class)
     {
         $this->query = new Query();
+        $this->tailQuery = new Query();
         $this->class = $class;
     }
 
@@ -30,8 +34,8 @@ class ModelQuery
     public function count(\PDO $pdo): int
     {
         return (int) Query::selectExpression(
-            'count(*) from (' . $this->query->sql . ') as substancephp_aggregate',
-            $this->query->params,
+            "count(*) {$this->tailQuery->sql}",
+            $this->tailQuery->params,
         )->fetchColumn($pdo);
     }
 
@@ -39,8 +43,8 @@ class ModelQuery
     public function sum(string $field, \PDO $pdo): int|float|null
     {
         return Query::selectExpression(
-            "sum($field) from ({$this->query->sql}) as substancephp_aggregate",
-            $this->query->params,
+            "sum($field) {$this->tailQuery->sql}",
+            $this->tailQuery->params,
         )->fetchColumn($pdo);
     }
 
@@ -106,21 +110,32 @@ class ModelQuery
         }
         $modelQuery->query->appendSelect($selectedColumns);
         $modelQuery->query->from($tableName);
+        $modelQuery->tailQuery->from($tableName);
         return $modelQuery;
+    }
+
+    /**
+     * Applies the callback to both the full query and its select-less tail.
+     *
+     * @return $this
+     */
+    private function appendToTail(callable $callback): self
+    {
+        $callback($this->query);
+        $callback($this->tailQuery);
+        return $this;
     }
 
     /** @return $this */
     public function innerJoin(string $table): self
     {
-        $this->query->innerJoin($table);
-        return $this;
+        return $this->appendToTail(fn (Query $q) => $q->innerJoin($table));
     }
 
     /** @return $this */
     public function leftJoin(string $table): self
     {
-        $this->query->leftJoin($table);
-        return $this;
+        return $this->appendToTail(fn (Query $q) => $q->leftJoin($table));
     }
 
     /**
@@ -129,15 +144,13 @@ class ModelQuery
      */
     public function groupBy(array $fields): self
     {
-        $this->query->groupBy($fields);
-        return $this;
+        return $this->appendToTail(fn (Query $q) => $q->groupBy($fields));
     }
 
     /** @return $this */
     public function on(string $condition): self
     {
-        $this->query->on($condition);
-        return $this;
+        return $this->appendToTail(fn (Query $q) => $q->on($condition));
     }
 
     /**
@@ -149,8 +162,9 @@ class ModelQuery
         string $comparator = '=',
         string $booleanOperator = 'and',
     ): self {
-        $this->query->where($criteria, $comparator, $booleanOperator);
-        return $this;
+        return $this->appendToTail(
+            fn (Query $q) => $q->where($criteria, $comparator, $booleanOperator),
+        );
     }
 
     /**
@@ -162,8 +176,9 @@ class ModelQuery
         string $comparator = '=',
         string $booleanOperator = 'and',
     ): self {
-        $this->query->andWhere($criteria, $comparator, $booleanOperator);
-        return $this;
+        return $this->appendToTail(
+            fn (Query $q) => $q->andWhere($criteria, $comparator, $booleanOperator),
+        );
     }
 
     /**
@@ -172,8 +187,7 @@ class ModelQuery
      */
     public function whereNot(array $criteria = []): self
     {
-        $this->query->whereNot($criteria);
-        return $this;
+        return $this->appendToTail(fn (Query $q) => $q->whereNot($criteria));
     }
 
     /**
@@ -182,8 +196,7 @@ class ModelQuery
      */
     public function andWhereNot(array $criteria = []): self
     {
-        $this->query->andWhereNot($criteria);
-        return $this;
+        return $this->appendToTail(fn (Query $q) => $q->andWhereNot($criteria));
     }
 
     /**
@@ -196,8 +209,7 @@ class ModelQuery
      */
     public function orderBy(array $fields): self
     {
-        $this->query->orderBy($fields);
-        return $this;
+        return $this->appendToTail(fn (Query $q) => $q->orderBy($fields));
     }
 
     /**
@@ -208,22 +220,19 @@ class ModelQuery
      */
     public function parens(callable $callback): self
     {
-        $this->query->parens($callback);
-        return $this;
+        return $this->appendToTail(fn (Query $q) => $q->parens($callback));
     }
 
     /** @return $this */
     public function limit(int $limit): self
     {
-        $this->query->limit($limit);
-        return $this;
+        return $this->appendToTail(fn (Query $q) => $q->limit($limit));
     }
 
     /** @return $this */
     public function offset(int $offset): self
     {
-        $this->query->offset($offset);
-        return $this;
+        return $this->appendToTail(fn (Query $q) => $q->offset($offset));
     }
 
     /**
@@ -368,15 +377,13 @@ class ModelQuery
     /** @return $this */
     public function append(string $fragment): self
     {
-        $this->query->append($fragment);
-        return $this;
+        return $this->appendToTail(fn (Query $q) => $q->append($fragment));
     }
 
     /** @return $this */
     public function appendTight(string $fragment): self
     {
-        $this->query->appendTight($fragment);
-        return $this;
+        return $this->appendToTail(fn (Query $q) => $q->appendTight($fragment));
     }
 
     /**
@@ -385,7 +392,6 @@ class ModelQuery
      */
     public function appendParam(bool|int|float|string|Literal|null|array $value): self
     {
-        $this->query->appendParam($value);
-        return $this;
+        return $this->appendToTail(fn (Query $q) => $q->appendParam($value));
     }
 }
