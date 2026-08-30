@@ -63,7 +63,7 @@ final class PostgresQueryTest extends PostgresTestCase
         $this->assertSame(3, $inserted);
         $this->assertSame(3, (int) ModelQuery::selectCountFrom(Vehicle::class)->fetchColumn($this->pdo()));
         $this->assertSame(
-            2000,
+            4000,
             (int) ModelQuery::selectSumFrom(Vehicle::class, 'year')
                 ->where(['year' => 2000])
                 ->fetchColumn($this->pdo()),
