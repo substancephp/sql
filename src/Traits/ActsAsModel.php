@@ -72,7 +72,7 @@ trait ActsAsModel
     public function readFromQueryResult(array $cell): void
     {
         foreach (self::getColumns() as $key => $column) {
-            $property = \is_int($key) ? $column : $key;
+            $property = (\is_int($key) ? $column : $key);
             if (\array_key_exists($property, $cell)) {
                 $this->{$property} = $cell[$property];
             }

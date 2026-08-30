@@ -71,7 +71,7 @@ final class QueryTest extends TestCase
         $query = Query::insertInto('things_unique', ['x' => 2, 'y' => 'TWO'])
             ->onConflictUpdate(['x'], ['y']);
         $this->assertSame(
-            'insert into things_unique (x, y) values (?, ?) on conflict (x) do update set y = excluded.y',
+            'insert into things_unique (x, y) values (?, ?) on conflict ( x ) do update set y = excluded.y',
             $query->sql,
         );
         $query->run($this->pdo);
