@@ -44,6 +44,44 @@ class Query
         return $this->run($pdo)->fetchColumn();
     }
 
+    /** Runs this query as a `select count(*)` query, discarding any selected columns. */
+    public function count(\PDO $pdo): int
+    {
+        return (int) $this->runAggregate('count(*)', $pdo);
+    }
+
+    /** Runs this query as a `select sum(...)` query, discarding any selected columns. */
+    public function sum(string $field, \PDO $pdo): int|float|null
+    {
+        return $this->runAggregate("sum($field)", $pdo);
+    }
+
+    /** Runs this query as an `exists` query. */
+    public function exists(\PDO $pdo): bool
+    {
+        $clone = clone $this;
+        $clone->sql = 'select exists(select 1' . self::withoutSelectClause($this->sql) . ')';
+        return (bool) $clone->fetchColumn($pdo);
+    }
+
+    /** Replaces the selected columns of this query with an aggregate expression, and runs it. */
+    private function runAggregate(string $aggregate, \PDO $pdo): mixed
+    {
+        $clone = clone $this;
+        $clone->sql = "select $aggregate" . self::withoutSelectClause($this->sql);
+        return $clone->fetchColumn($pdo);
+    }
+
+    /** Returns the part of a query after its initial select clause. */
+    private static function withoutSelectClause(string $sql): string
+    {
+        $fromPosition = \stripos($sql, ' from ');
+        if ($fromPosition === false) {
+            throw new \InvalidArgumentException('Query has no from clause to aggregate over.');
+        }
+        return \substr($sql, $fromPosition);
+    }
+
     /**
      * @param array<int|string, string> $columns
      *

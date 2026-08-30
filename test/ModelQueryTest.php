@@ -50,6 +50,27 @@ final class ModelQueryTest extends TestCase
     }
 
     #[Test]
+    public function aggregates(): void
+    {
+        $vehicle = new Vehicle();
+        $vehicle->kind = 'car';
+        $vehicle->make = 'Ford';
+        $vehicle->model = 'Falcon';
+        $vehicle->year = 2000;
+        $vehicle->briefDescription = 'flagship sedan';
+        ModelQuery::insert($vehicle)->run($this->pdo);
+
+        $this->assertSame(1, ModelQuery::selectFrom(Vehicle::class)->count($this->pdo));
+        $this->assertSame(2000, ModelQuery::selectFrom(Vehicle::class)->sum('year', $this->pdo));
+        $this->assertTrue(
+            ModelQuery::selectFrom(Vehicle::class)->where(['make' => 'Ford'])->exists($this->pdo),
+        );
+        $this->assertFalse(
+            ModelQuery::selectFrom(Vehicle::class)->where(['make' => 'Honda'])->exists($this->pdo),
+        );
+    }
+
+    #[Test]
     public function insertSelectUpdateDelete(): void
     {
         $vehicle = new Vehicle();

@@ -26,6 +26,24 @@ class ModelQuery
         return $this->query->run($pdo);
     }
 
+    /** Runs the query as a `select count(*)` query. */
+    public function count(\PDO $pdo): int
+    {
+        return $this->query->count($pdo);
+    }
+
+    /** Runs the query as a `select sum($field)` query. */
+    public function sum(string $field, \PDO $pdo): int|float|null
+    {
+        return $this->query->sum($field, $pdo);
+    }
+
+    /** Runs the query as an `exists` query. */
+    public function exists(\PDO $pdo): bool
+    {
+        return $this->query->exists($pdo);
+    }
+
     public function getSql(): string
     {
         return $this->query->sql;
