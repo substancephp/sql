@@ -127,6 +127,35 @@ final class ModelQueryTest extends TestCase
     }
 
     #[Test]
+    public function insertMany(): void
+    {
+        $ford = new Vehicle();
+        $ford->kind = 'car';
+        $ford->make = 'Ford';
+        $ford->model = 'Falcon';
+        $ford->year = 2000;
+        $ford->briefDescription = 'flagship sedan';
+
+        $holden = new Vehicle();
+        $holden->kind = 'car';
+        $holden->make = 'Holden';
+        $holden->model = 'Commodore';
+        $holden->year = 2000;
+        $holden->briefDescription = 'flagship sedan';
+
+        $yamaha = new Vehicle();
+        $yamaha->kind = 'bike';
+        $yamaha->make = 'Yamaha';
+        $yamaha->model = 'Enduro';
+        $yamaha->year = 1977;
+        $yamaha->briefDescription = 'motorbike';
+
+        $inserted = ModelQuery::insertMany($this->pdo, [$ford, $holden, $yamaha], 2);
+        $this->assertSame(3, $inserted);
+        $this->assertSame(3, ModelQuery::selectFrom(Vehicle::class)->count($this->pdo));
+    }
+
+    #[Test]
     public function updateWithoutPrimaryKeyThrows(): void
     {
         $vehicle = Vehicle::makeDefault();

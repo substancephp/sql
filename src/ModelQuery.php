@@ -253,6 +253,30 @@ class ModelQuery
     }
 
     /**
+     * Inserts multiple models in chunks, as a sequence of multi-row `insert` statements.
+     *
+     * @param iterable<Model<mixed>> $models
+     * @return int The number of rows inserted.
+     */
+    public static function insertMany(\PDO $pdo, iterable $models, int $chunkSize): int
+    {
+        $rows = [];
+        $class = null;
+        foreach ($models as $model) {
+            $class ??= \get_class($model);
+            if (\get_class($model) !== $class) {
+                throw new \InvalidArgumentException('All models must be of the same class.');
+            }
+            $rows[] = $model->getWriteableValues();
+        }
+        if ($class === null) {
+            return 0;
+        }
+        $columns = \array_keys($rows[0]);
+        return Query::insertRows($pdo, $class::getTableName(), $columns, $rows, $chunkSize);
+    }
+
+    /**
      * @template M of Model
      * @param M $model
      * @return self<M>
