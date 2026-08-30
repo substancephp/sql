@@ -69,11 +69,24 @@ class Query
             }
             $this->append($right);
             if (! \is_int($left)) {
-                $this->append('as')->append($left);
+                $this->append('as')->append(self::quotedAliasIfNeeded($left));
             }
             ++$i;
         }
         return $this;
+    }
+
+    /**
+     * Quotes an alias unless it consists only of lowercase letters, digits and underscores. Aliases like
+     * `userId` need quoting because unquoted identifiers are folded to lowercase on some engines, e.g.
+     * PostgreSQL, so the result row key would otherwise no longer match the alias.
+     */
+    private static function quotedAliasIfNeeded(string $alias): string
+    {
+        if (\preg_match('/^[a-z0-9_]+$/', $alias) === 1) {
+            return $alias;
+        }
+        return '"' . \str_replace('"', '""', $alias) . '"';
     }
 
     public function from(string $table): self
