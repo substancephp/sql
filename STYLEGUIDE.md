@@ -12,9 +12,13 @@
   where referenced via `{@see TheThing}`.
 * Redundant parentheses should be used in complex expressions to clarify precedence for readers of
   the code.
-* Redundant parentheses should be used to clarify relative precedence of "adjacent" boolean operations.
+* Redundant parentheses should be used to clarify relative precedence of "adjacent" boolean operations
+  where the operators differ:
   * Good: `$a = $b || ($c && $d)`
   * Bad: `$a = $b || $c && $d`
+  * Where the operators are the same, the parentheses add no clarity and can be dropped:
+    * `$x === $y && $z === $a`, not `($x === $y) && ($z === $a)`
+    * `$x === $y || $z === $a`, not `($x === $y) || ($z === $a)`
 * Redundant parentheses should be used for readability of expressions in which `=`/`==`/`===` are
   "adjacent"
   * Good: `$a = ($b === $c)`
