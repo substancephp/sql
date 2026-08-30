@@ -31,8 +31,9 @@
         "lint": "vendor/bin/php-cs-fixer check",
         "delint": "vendor/bin/php-cs-fixer fix",
         "stan": "vendor/bin/phpstan analyse --level=8 --memory-limit=1G src test testutil",
-        "test": "XDEBUG_MODE=coverage vendor/bin/phpunit --coverage-text test",
-        "serve-coverage-report": "php -S localhost:3000 -t html-coverage"
+        "test": "XDEBUG_MODE=coverage vendor/bin/phpunit --coverage-text",
+        "serve-coverage-report": "php -S localhost:3000 -t html-coverage",
+        "test-pgsql": "vendor/bin/phpunit -c phpunit-pgsql.xml"
     },
     "scripts-descriptions": {
       "qa": "Run all the code quality checks; don't auto-fix anything",
@@ -40,6 +41,7 @@
       "delint": "De-lint",
       "stan": "Run static analysis",
       "test": "Run the tests",
+      "test-pgsql": "Run the PostgreSQL test suite",
       "serve-coverage-report": "Serve an HTML code coverage report"
     },
     "support": {

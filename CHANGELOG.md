@@ -1,5 +1,14 @@
 # CHANGELOG
 
+## Unreleased
+
+* Add PostgreSQL test support and CI coverage.
+* Quote select aliases when needed; hydrate models only from declared columns.
+* Guard update/delete against unpopulated primary keys.
+* Add aggregate helpers (`count`, `sum`, `exists`).
+* Add bulk insert and upsert support.
+* Fix `groupBy` and lint configuration.
+
 ## v0.7.0
 
 Add transaction utility: `Transaction::run`.
