@@ -334,9 +334,10 @@ class Query
         }
 
         $columnList = \implode(', ', $columns);
-        $placeholder = (new self())
-            ->parens(fn (Query $q) => $q->append(\implode(', ', \array_fill(0, \count($columns), '?'))))
-            ->sql;
+        $placeholderContent = \implode(', ', \array_fill(0, \count($columns), '?'));
+        $placeholderQuery = new self();
+        $placeholderQuery->parens(fn (Query $q) => $q->append($placeholderContent));
+        $placeholder = $placeholderQuery->sql;
         $inserted = 0;
         $chunk = [];
         foreach ($rows as $row) {
