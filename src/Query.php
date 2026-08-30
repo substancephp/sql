@@ -347,7 +347,7 @@ class Query
                 }
             }
             $chunk[] = $row;
-            if (\count($chunk) === $chunkSize) {
+            if (\count($chunk) == $chunkSize) {
                 $inserted += self::insertOneChunk($pdo, $table, $columnList, $placeholder, $columns, $chunk);
                 $chunk = [];
             }
