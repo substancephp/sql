@@ -163,6 +163,7 @@ class Query
             ->append('where')
             ->parens(fn (Query $q) => $q->buildCriteria($criteria, $comparator, $booleanOperator));
     }
+
     /** @param array<string, mixed> $criteria */
     public function andWhere(
         array $criteria = [],
@@ -323,6 +324,91 @@ class Query
         $this->appendTight(') values (');
         $fragment = \implode(', ', $deferredPlaceholders);
         return $this->appendTight($fragment)->appendTight(')');
+    }
+
+    /**
+     * Inserts multiple rows in chunks, as a sequence of multi-row `insert` statements.
+     *
+     * @param string[] $columns
+     * @param iterable<array<string, mixed>> $rows
+     * @return int The number of rows inserted.
+     */
+    public static function insertRows(
+        \PDO $pdo,
+        string $table,
+        array $columns,
+        iterable $rows,
+        int $chunkSize,
+    ): int {
+        if ($columns === []) {
+            throw new \InvalidArgumentException('Columns must not be empty.');
+        }
+        if ($chunkSize < 1) {
+            throw new \InvalidArgumentException('Chunk size must be at least 1.');
+        }
+
+        $columnList = \implode(', ', $columns);
+        $placeholder = '(' . \implode(', ', \array_fill(0, \count($columns), '?')) . ')';
+        $inserted = 0;
+        $chunk = [];
+        foreach ($rows as $row) {
+            foreach ($columns as $column) {
+                if (! \array_key_exists($column, $row)) {
+                    throw new \InvalidArgumentException("Row is missing column: $column");
+                }
+            }
+            $chunk[] = $row;
+            if (\count($chunk) === $chunkSize) {
+                $inserted += self::insertOneChunk($pdo, $table, $columnList, $placeholder, $columns, $chunk);
+                $chunk = [];
+            }
+        }
+        if ($chunk !== []) {
+            $inserted += self::insertOneChunk($pdo, $table, $columnList, $placeholder, $columns, $chunk);
+        }
+        return $inserted;
+    }
+
+    /**
+     * @param string[] $columns
+     * @param array<string, mixed>[] $rows
+     */
+    private static function insertOneChunk(
+        \PDO $pdo,
+        string $table,
+        string $columnList,
+        string $placeholder,
+        array $columns,
+        array $rows,
+    ): int {
+        $query = new self();
+        $query->append("insert into $table ($columnList) values");
+        $placeholderGroups = [];
+        foreach ($rows as $row) {
+            $placeholderGroups[] = $placeholder;
+            foreach ($columns as $column) {
+                $query->params[] = $row[$column];
+            }
+        }
+        $query->appendTight(\implode(', ', $placeholderGroups));
+        return $query->run($pdo)->rowCount();
+    }
+
+    /**
+     * Appends a PostgreSQL-style `on conflict ... do update` clause to an insert query.
+     *
+     * @param string[] $conflictColumns
+     * @param string[]|null $updateColumns
+     */
+    public function onConflictUpdate(array $conflictColumns, ?array $updateColumns = null): self
+    {
+        $updateColumns ??= $conflictColumns;
+        $this->append('on conflict (' . \implode(', ', $conflictColumns) . ') do update set');
+        $assignments = [];
+        foreach ($updateColumns as $column) {
+            $assignments[] = "$column = excluded.$column";
+        }
+        return $this->appendTight(' ' . \implode(', ', $assignments));
     }
 
     public static function deleteFrom(string $table): self
