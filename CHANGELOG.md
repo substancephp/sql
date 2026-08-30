@@ -5,7 +5,8 @@
 * Add PostgreSQL test support and CI coverage.
 * Quote select aliases when needed; hydrate models only from declared columns.
 * Guard update/delete against unpopulated primary keys.
-* Add aggregate helpers (`count`, `sum`, `exists`).
+* Add aggregate select expressions to `Query` (`selectCount`, `selectSum`, `selectExpression`) and
+  `count`/`sum`/`exists` conveniences to `ModelQuery`.
 * Add bulk insert and upsert support.
 * Fix `groupBy` and lint configuration.
 

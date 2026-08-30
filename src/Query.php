@@ -13,6 +13,9 @@ class Query
     /** @var mixed[] */
     public private(set) array $params = [];
 
+    /** The length of the select clause in {@see self::$sql}, when it was built by a select method. */
+    private int $selectClauseLength = 0;
+
     public function run(\PDO $pdo): \PDOStatement
     {
         $statement = $pdo->prepare($this->sql);
@@ -44,32 +47,44 @@ class Query
         return $this->run($pdo)->fetchColumn();
     }
 
-    /** Runs this query as a `select count(*)` query, discarding any selected columns. */
-    public function count(\PDO $pdo): int
+    /**
+     * Starts a query with the given select expression, e.g. `count(*)`, and any parameters it uses.
+     *
+     * Use like: `Query::selectExpression('count(*)')->from('users')`.
+     *
+     * @param mixed[] $params
+     */
+    public static function selectExpression(string $expression, array $params = []): self
     {
-        return (int) $this->runAggregate('count(*)', $pdo);
+        $query = new self();
+        $query->append('select')->append($expression);
+        $query->selectClauseLength = \strlen($query->sql);
+        $query->params = $params;
+        return $query;
     }
 
-    /** Runs this query as a `select sum(...)` query, discarding any selected columns. */
-    public function sum(string $field, \PDO $pdo): int|float|null
+    public static function selectCount(string $expression = '*'): self
     {
-        return $this->runAggregate("sum($field)", $pdo);
+        return self::selectExpression("count($expression)");
     }
 
-    /** Runs this query as an `exists` query. */
-    public function exists(\PDO $pdo): bool
+    public static function selectSum(string $field): self
     {
+        return self::selectExpression("sum($field)");
+    }
+
+    /** Returns a copy of this query with a different select clause. */
+    public function withSelectClause(string $selectClause): self
+    {
+        if ($this->selectClauseLength === 0 && $this->sql !== '') {
+            throw new \RuntimeException(
+                'Cannot replace the select clause of a query that was not built with a select method.',
+            );
+        }
         $clone = clone $this;
-        $clone->sql = 'select exists(' . $this->sql . ')';
-        return (bool) $clone->fetchColumn($pdo);
-    }
-
-    /** Runs this query as a `select aggregate from (this query)` query. */
-    private function runAggregate(string $aggregate, \PDO $pdo): mixed
-    {
-        $clone = clone $this;
-        $clone->sql = "select $aggregate from ({$this->sql}) as substancephp_aggregate";
-        return $clone->fetchColumn($pdo);
+        $clone->sql = $selectClause . \substr($this->sql, $this->selectClauseLength);
+        $clone->selectClauseLength = \strlen($selectClause);
+        return $clone;
     }
 
     /**
@@ -101,6 +116,7 @@ class Query
             }
             ++$i;
         }
+        $this->selectClauseLength = \strlen($this->sql);
         return $this;
     }
 
