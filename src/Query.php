@@ -163,7 +163,6 @@ class Query
             ->append('where')
             ->parens(fn (Query $q) => $q->buildCriteria($criteria, $comparator, $booleanOperator));
     }
-
     /** @param array<string, mixed> $criteria */
     public function andWhere(
         array $criteria = [],
@@ -259,6 +258,11 @@ class Query
                     default:
                         throw new \RuntimeException('invalid comparison with NULL');
                 }
+            } elseif ($value instanceof \Closure) {
+                // A closure value builds the comparison's right-hand side itself, which lets callers
+                // express function-wrapped comparisons while keeping values bound as parameters.
+                $this->append($comparator);
+                $value($this);
             } else {
                 $this->append($comparator)->appendParam($value);
             }
