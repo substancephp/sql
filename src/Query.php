@@ -348,7 +348,9 @@ class Query
         }
 
         $columnList = \implode(', ', $columns);
-        $placeholder = '(' . \implode(', ', \array_fill(0, \count($columns), '?')) . ')';
+        $placeholder = (new self())
+            ->parens(fn (Query $q) => $q->append(\implode(', ', \array_fill(0, \count($columns), '?'))))
+            ->sql;
         $inserted = 0;
         $chunk = [];
         foreach ($rows as $row) {
@@ -403,7 +405,9 @@ class Query
     public function onConflictUpdate(array $conflictColumns, ?array $updateColumns = null): self
     {
         $updateColumns ??= $conflictColumns;
-        $this->append('on conflict (' . \implode(', ', $conflictColumns) . ') do update set');
+        $this->append('on conflict');
+        $this->parens(fn (Query $q) => $q->append(\implode(', ', $conflictColumns)));
+        $this->append('do update set');
         $assignments = [];
         foreach ($updateColumns as $column) {
             $assignments[] = "$column = excluded.$column";
