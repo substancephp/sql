@@ -13,9 +13,6 @@ class Query
     /** @var mixed[] */
     public private(set) array $params = [];
 
-    /** The length of the select clause in {@see self::$sql}, when it was built by a select method. */
-    private int $selectClauseLength = 0;
-
     public function run(\PDO $pdo): \PDOStatement
     {
         $statement = $pdo->prepare($this->sql);
@@ -58,7 +55,6 @@ class Query
     {
         $query = new self();
         $query->append('select')->append($expression);
-        $query->selectClauseLength = \strlen($query->sql);
         $query->params = $params;
         return $query;
     }
@@ -72,21 +68,6 @@ class Query
     {
         return self::selectExpression("sum($field)");
     }
-
-    /** Returns a copy of this query with a different select clause. */
-    public function withSelectClause(string $selectClause): self
-    {
-        if ($this->selectClauseLength === 0 && $this->sql !== '') {
-            throw new \RuntimeException(
-                'Cannot replace the select clause of a query that was not built with a select method.',
-            );
-        }
-        $clone = clone $this;
-        $clone->sql = $selectClause . \substr($this->sql, $this->selectClauseLength);
-        $clone->selectClauseLength = \strlen($selectClause);
-        return $clone;
-    }
-
     /**
      * @param array<int|string, string> $columns
      *
@@ -116,7 +97,6 @@ class Query
             }
             ++$i;
         }
-        $this->selectClauseLength = \strlen($this->sql);
         return $this;
     }
 
