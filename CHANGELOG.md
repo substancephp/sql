@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## Unreleased
+## v0.8.0
 
 * Add PostgreSQL test support and CI coverage.
 * Quote select aliases when needed; hydrate models only from declared columns.
