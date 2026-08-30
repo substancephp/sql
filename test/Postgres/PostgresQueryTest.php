@@ -61,10 +61,12 @@ final class PostgresQueryTest extends PostgresTestCase
         );
 
         $this->assertSame(3, $inserted);
-        $this->assertSame(3, ModelQuery::selectFrom(Vehicle::class)->count($this->pdo()));
+        $this->assertSame(3, (int) ModelQuery::selectCountFrom(Vehicle::class)->fetchColumn($this->pdo()));
         $this->assertSame(
             2000,
-            ModelQuery::selectFrom(Vehicle::class)->where(['year' => 2000])->sum('year', $this->pdo()),
+            (int) ModelQuery::selectSumFrom(Vehicle::class, 'year')
+                ->where(['year' => 2000])
+                ->fetchColumn($this->pdo()),
         );
         $this->assertTrue(
             ModelQuery::selectFrom(Vehicle::class)->where(['make' => 'Holden'])->exists($this->pdo()),
