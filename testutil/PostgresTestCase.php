@@ -25,13 +25,17 @@ abstract class PostgresTestCase extends TestCase
         }
         $this->pdo = new \PDO($dsn);
         $this->pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+        $this->pdo->beginTransaction();
         parent::setUp();
     }
 
     #[\Override]
     protected function tearDown(): void
     {
-        $this->pdo?->exec('rollback');
+        $pdo = $this->pdo;
+        if ($pdo !== null && $pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
         $this->pdo = null;
         parent::tearDown();
     }
