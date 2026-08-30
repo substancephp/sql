@@ -29,13 +29,19 @@ class ModelQuery
     /** Runs the query as a `select count(*)` query. */
     public function count(\PDO $pdo): int
     {
-        return (int) $this->query->withSelectClause('select count(*)')->fetchColumn($pdo);
+        return (int) Query::selectExpression(
+            'count(*) from (' . $this->query->sql . ') as substancephp_aggregate',
+            $this->query->params,
+        )->fetchColumn($pdo);
     }
 
     /** Runs the query as a `select sum($field)` query. */
     public function sum(string $field, \PDO $pdo): int|float|null
     {
-        return $this->query->withSelectClause("select sum($field)")->fetchColumn($pdo);
+        return Query::selectExpression(
+            "sum($field) from ({$this->query->sql}) as substancephp_aggregate",
+            $this->query->params,
+        )->fetchColumn($pdo);
     }
 
     /** Runs the query as an `exists` query. */
