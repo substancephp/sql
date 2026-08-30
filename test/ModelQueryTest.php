@@ -104,4 +104,30 @@ final class ModelQueryTest extends TestCase
         $results = ModelQuery::selectFrom(Vehicle::class)->where(['id' => 2])->fetch($this->pdo);
         $this->assertCount(0, $results);
     }
+
+    #[Test]
+    public function updateWithoutPrimaryKeyThrows(): void
+    {
+        $vehicle = Vehicle::makeDefault();
+        $vehicle->kind = 'car';
+        $this->expectException(\InvalidArgumentException::class);
+        ModelQuery::update($vehicle);
+    }
+
+    #[Test]
+    public function deleteWithoutPrimaryKeyThrows(): void
+    {
+        $vehicle = Vehicle::makeDefault();
+        $this->expectException(\InvalidArgumentException::class);
+        ModelQuery::delete($vehicle);
+    }
+
+    #[Test]
+    public function updateWithZeroPrimaryKeyThrows(): void
+    {
+        $vehicle = Vehicle::makeDefault();
+        $vehicle->id = 0;
+        $this->expectException(\InvalidArgumentException::class);
+        ModelQuery::update($vehicle);
+    }
 }
