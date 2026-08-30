@@ -208,15 +208,16 @@ class ModelQuery
      */
     public static function update($model): self
     {
-        // FIXNOW Error out if primary key unpopulated.
         $class = \get_class($model);
+        $primaryKey = $model->getPrimaryKey();
+        self::assertPopulatedPrimaryKey($class, $primaryKey);
         $modelQuery = new self($class);
         $updates = $model->getWriteableValues();
         unset($updates[$class::getPrimaryKeyColumn()]);
         $modelQuery->query
             ->appendUpdate($class::getTableName())
             ->set($updates)
-            ->where([$class::getPrimaryKeyColumn() => $model->getPrimaryKey()]);
+            ->where([$class::getPrimaryKeyColumn() => $primaryKey]);
         return $modelQuery;
     }
 
@@ -263,13 +264,31 @@ class ModelQuery
      */
     public static function delete($model): self
     {
-        // FIXNOW Error out if primary key unpopulated.
         $class = \get_class($model);
+        $primaryKey = $model->getPrimaryKey();
+        self::assertPopulatedPrimaryKey($class, $primaryKey);
         $modelQuery = new self($class);
         $modelQuery->query
             ->appendDeleteFrom($class::getTableName())
-            ->where([$class::getPrimaryKeyColumn() => $model->getPrimaryKey()]);
+            ->where([$class::getPrimaryKeyColumn() => $primaryKey]);
         return $modelQuery;
+    }
+
+    /** @param class-string $class */
+    private static function assertPopulatedPrimaryKey(string $class, mixed $primaryKey): void
+    {
+        $isUnpopulated = ($primaryKey === Noop::T)
+            || ($primaryKey === null)
+            || ($primaryKey === '')
+            // To avoid "surprising inequalities", numbers are compared loosely, so that 0 and 0.0 count as
+            // unpopulated too.
+            || (\is_int($primaryKey) && $primaryKey == 0)
+            || (\is_float($primaryKey) && $primaryKey == 0.0);
+        if ($isUnpopulated) {
+            throw new \InvalidArgumentException(
+                "Cannot operate on model of class $class: its primary key is unpopulated.",
+            );
+        }
     }
 
     /**
