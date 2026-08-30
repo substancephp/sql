@@ -60,26 +60,16 @@ class Query
     public function exists(\PDO $pdo): bool
     {
         $clone = clone $this;
-        $clone->sql = 'select exists(select 1' . self::withoutSelectClause($this->sql) . ')';
+        $clone->sql = 'select exists(' . $this->sql . ')';
         return (bool) $clone->fetchColumn($pdo);
     }
 
-    /** Replaces the selected columns of this query with an aggregate expression, and runs it. */
+    /** Runs this query as a `select aggregate from (this query)` query. */
     private function runAggregate(string $aggregate, \PDO $pdo): mixed
     {
         $clone = clone $this;
-        $clone->sql = "select $aggregate" . self::withoutSelectClause($this->sql);
+        $clone->sql = "select $aggregate from ({$this->sql}) as substancephp_aggregate";
         return $clone->fetchColumn($pdo);
-    }
-
-    /** Returns the part of a query after its initial select clause. */
-    private static function withoutSelectClause(string $sql): string
-    {
-        $fromPosition = \stripos($sql, ' from ');
-        if ($fromPosition === false) {
-            throw new \InvalidArgumentException('Query has no from clause to aggregate over.');
-        }
-        return \substr($sql, $fromPosition);
     }
 
     /**

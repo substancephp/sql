@@ -82,6 +82,20 @@ final class QueryTest extends TestCase
     }
 
     #[Test]
+    public function aggregatesDoNotParseTheSql(): void
+    {
+        $this->createThingsTable();
+        Query::insertInto('things', ['x' => 1, 'y' => 'a from b'])->run($this->pdo);
+
+        $query = new Query();
+        $query->append("select x from things where y = 'a from b'");
+
+        $this->assertSame(1, $query->count($this->pdo));
+        $this->assertSame(1, $query->sum('x', $this->pdo));
+        $this->assertTrue($query->exists($this->pdo));
+    }
+
+    #[Test]
     public function fetchColumn(): void
     {
         $query = new Query();
