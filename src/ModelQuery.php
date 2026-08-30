@@ -29,19 +29,20 @@ class ModelQuery
     /** Runs the query as a `select count(*)` query. */
     public function count(\PDO $pdo): int
     {
-        return $this->query->count($pdo);
+        return (int) $this->query->withSelectClause('select count(*)')->fetchColumn($pdo);
     }
 
     /** Runs the query as a `select sum($field)` query. */
     public function sum(string $field, \PDO $pdo): int|float|null
     {
-        return $this->query->sum($field, $pdo);
+        return $this->query->withSelectClause("select sum($field)")->fetchColumn($pdo);
     }
 
     /** Runs the query as an `exists` query. */
     public function exists(\PDO $pdo): bool
     {
-        return $this->query->exists($pdo);
+        return (bool) Query::selectExpression('exists(' . $this->query->sql . ')', $this->query->params)
+            ->fetchColumn($pdo);
     }
 
     public function getSql(): string

@@ -65,7 +65,7 @@ final class QueryTest extends TestCase
             2,
         );
         $this->assertSame(3, $inserted);
-        $this->assertSame(3, (int) Query::select(['x'])->from('things')->count($this->pdo));
+        $this->assertSame(3, (int) Query::selectCount()->from('things')->fetchColumn($this->pdo));
 
         new Query()->append('create table things_unique (x primary key, y)')->run($this->pdo);
         $query = Query::insertInto('things_unique', ['x' => 2, 'y' => 'TWO'])
@@ -82,17 +82,19 @@ final class QueryTest extends TestCase
     }
 
     #[Test]
-    public function aggregatesDoNotParseTheSql(): void
+    public function selectExpressionBuilders(): void
     {
+        $this->assertSame('select count(*)', Query::selectCount()->sql);
+        $this->assertSame('select count(distinct x)', Query::selectCount('distinct x')->sql);
+        $this->assertSame('select sum(x)', Query::selectSum('x')->sql);
+        $this->assertSame('select exists(select 1)', Query::selectExpression('exists(select 1)')->sql);
+
         $this->createThingsTable();
-        Query::insertInto('things', ['x' => 1, 'y' => 'a from b'])->run($this->pdo);
+        Query::insertInto('things', ['x' => 1, 'y' => 'one'])->run($this->pdo);
+        Query::insertInto('things', ['x' => 2, 'y' => 'two'])->run($this->pdo);
 
-        $query = new Query();
-        $query->append("select x from things where y = 'a from b'");
-
-        $this->assertSame(1, $query->count($this->pdo));
-        $this->assertSame(1, $query->sum('x', $this->pdo));
-        $this->assertTrue($query->exists($this->pdo));
+        $this->assertSame(2, (int) Query::selectCount()->from('things')->fetchColumn($this->pdo));
+        $this->assertSame(3, (int) Query::selectSum('x')->from('things')->fetchColumn($this->pdo));
     }
 
     #[Test]
