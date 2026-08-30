@@ -6,7 +6,7 @@
 * Quote select aliases when needed; hydrate models only from declared columns.
 * Guard update/delete against unpopulated primary keys.
 * Add aggregate select expressions to `Query` (`selectCount`, `selectSum`, `selectExpression`) and
-  `count`/`sum`/`exists` conveniences to `ModelQuery`.
+  `ModelQuery` (`selectCountFrom`, `selectSumFrom`, `exists`).
 * Add bulk insert and upsert support.
 * Fix `groupBy` and lint configuration.
 

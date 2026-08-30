@@ -60,8 +60,11 @@ final class ModelQueryTest extends TestCase
         $vehicle->briefDescription = 'flagship sedan';
         ModelQuery::insert($vehicle)->run($this->pdo);
 
-        $this->assertSame(1, ModelQuery::selectFrom(Vehicle::class)->count($this->pdo));
-        $this->assertSame(2000, ModelQuery::selectFrom(Vehicle::class)->sum('year', $this->pdo));
+        $this->assertSame(1, (int) ModelQuery::selectCountFrom(Vehicle::class)->fetchColumn($this->pdo));
+        $this->assertSame(
+            2000,
+            (int) ModelQuery::selectSumFrom(Vehicle::class, 'year')->fetchColumn($this->pdo),
+        );
         $this->assertTrue(
             ModelQuery::selectFrom(Vehicle::class)->where(['make' => 'Ford'])->exists($this->pdo),
         );
@@ -152,7 +155,7 @@ final class ModelQueryTest extends TestCase
 
         $inserted = ModelQuery::insertMany($this->pdo, [$ford, $holden, $yamaha], 2);
         $this->assertSame(3, $inserted);
-        $this->assertSame(3, ModelQuery::selectFrom(Vehicle::class)->count($this->pdo));
+        $this->assertSame(3, (int) ModelQuery::selectCountFrom(Vehicle::class)->fetchColumn($this->pdo));
     }
 
     #[Test]
