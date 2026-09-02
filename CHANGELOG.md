@@ -1,11 +1,17 @@
 # CHANGELOG
 
-## Unreleased
+## v0.9.0
 
-* Replace the `Noop` sentinel with native uninitialized typed properties for absent model column values;
-  add a property-initialization presence helper, and base the update/delete primary-key guard on it.
-* Distinguish the primary-key property from its column; models declare the property via
-  `getPrimaryKeyProperty()` (default `id`), and `#[Table]` now takes only the table name.
+Breaking changes:
+* Replace the `Noop` sentinel with native uninitialized typed properties. Model columns are now plain
+  typed properties with no default value; absent columns are uninitialized, and `propertyIsInitialized()`
+  is the presence helper for distinguishing absent from null.
+* `#[Table]` now takes only the table name. The primary-key property is declared by overriding
+  `getPrimaryKeyProperty()`, which defaults to `id`.
+
+Bug fixes:
+* Reads, saves and update/delete guards now resolve the primary-key property correctly when its name
+  differs from its column.
 
 ## v0.8.0
 
