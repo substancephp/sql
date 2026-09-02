@@ -107,11 +107,11 @@ final class ModelQueryTest extends TestCase
         $this->assertCount(2, $results);
         $this->assertSame('Holden', $results[0]->make);
         $this->assertSame('Ford', $results[1]->make);
-        $this->assertSame(2, $results[0]->id);
-        $this->assertSame(1, $results[1]->id);
+        $this->assertSame(2, $results[0]->vehicleId);
+        $this->assertSame(1, $results[1]->vehicleId);
 
         $holden = Vehicle::makeDefault();
-        $holden->id = 2;
+        $holden->vehicleId = 2;
         $holden->year = 1996;
         $holden->model = 'Berina';
         $holden->briefDescription = null;
@@ -202,7 +202,7 @@ final class ModelQueryTest extends TestCase
     public function updateWithZeroPrimaryKeyBuildsQuery(): void
     {
         $vehicle = Vehicle::makeDefault();
-        $vehicle->id = 0;
+        $vehicle->vehicleId = 0;
         $vehicle->kind = 'car';
 
         $query = ModelQuery::update($vehicle);

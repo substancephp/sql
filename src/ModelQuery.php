@@ -246,7 +246,8 @@ class ModelQuery
     {
         $class = \get_class($model);
         $primaryKeyColumn = $class::getPrimaryKeyColumn();
-        self::assertInitializedPrimaryKey($class, $primaryKeyColumn, $model);
+        $primaryKeyProperty = $class::getPrimaryKeyProperty();
+        self::assertInitializedPrimaryKey($class, $primaryKeyProperty, $model);
         $primaryKey = $model->getPrimaryKey();
         $modelQuery = new self($class);
         $updates = $model->getWriteableValues();
@@ -303,7 +304,7 @@ class ModelQuery
     public static function save($model): self
     {
         $class = \get_class($model);
-        return $model->propertyIsInitialized($class::getPrimaryKeyColumn())
+        return $model->propertyIsInitialized($class::getPrimaryKeyProperty())
             ? self::update($model)
             : self::insert($model);
     }
@@ -329,7 +330,8 @@ class ModelQuery
     {
         $class = \get_class($model);
         $primaryKeyColumn = $class::getPrimaryKeyColumn();
-        self::assertInitializedPrimaryKey($class, $primaryKeyColumn, $model);
+        $primaryKeyProperty = $class::getPrimaryKeyProperty();
+        self::assertInitializedPrimaryKey($class, $primaryKeyProperty, $model);
         $primaryKey = $model->getPrimaryKey();
         $modelQuery = new self($class);
         $modelQuery->query
@@ -342,9 +344,12 @@ class ModelQuery
      * @param class-string $class
      * @param Model<mixed> $model
      */
-    private static function assertInitializedPrimaryKey(string $class, string $primaryKeyColumn, $model): void
-    {
-        if (! $model->propertyIsInitialized($primaryKeyColumn)) {
+    private static function assertInitializedPrimaryKey(
+        string $class,
+        string $primaryKeyProperty,
+        $model,
+    ): void {
+        if (! $model->propertyIsInitialized($primaryKeyProperty)) {
             throw new \InvalidArgumentException(
                 "Cannot operate on model of class $class: its primary key is uninitialized.",
             );

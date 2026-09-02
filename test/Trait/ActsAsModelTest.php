@@ -83,11 +83,11 @@ final class ActsAsModelTest extends TestCase
         $this->assertCount(2, $results);
         $this->assertSame('Holden', $results[0]->make);
         $this->assertSame('Ford', $results[1]->make);
-        $this->assertSame(2, $results[0]->id);
-        $this->assertSame(1, $results[1]->id);
+        $this->assertSame(2, $results[0]->vehicleId);
+        $this->assertSame(1, $results[1]->vehicleId);
 
         $holden = Vehicle::makeDefault();
-        $holden->id = 2;
+        $holden->vehicleId = 2;
         $holden->year = 1996;
         $holden->model = 'Berina';
         $holden->briefDescription = null;
@@ -112,12 +112,19 @@ final class ActsAsModelTest extends TestCase
         $vehicle->model = 'Civic';
         $vehicle->year = 1980;
         $vehicle->briefDescription = null;
-        $this->assertFalse($vehicle->propertyIsInitialized('id'));
+        $this->assertFalse($vehicle->propertyIsInitialized('vehicleId'));
         $vehicle->save()->run($this->pdo);
         $vehicle = Vehicle::selectAll()->where(['model' => 'Civic'])->first($this->pdo);
         $this->assertNotNull($vehicle);
         $this->assertSame('Civic', $vehicle->model);
-        $this->assertGreaterThan(0, $vehicle->id);
+        $this->assertGreaterThan(0, $vehicle->vehicleId);
+    }
+
+    #[Test]
+    public function primaryKeyPropertyIsDistinguishedFromColumn(): void
+    {
+        $this->assertSame('id', Vehicle::getPrimaryKeyColumn());
+        $this->assertSame('vehicleId', Vehicle::getPrimaryKeyProperty());
     }
 
     #[Test]

@@ -4,6 +4,8 @@
 
 * Replace the `Noop` sentinel with native uninitialized typed properties for absent model column values;
   add a property-initialization presence helper, and base the update/delete primary-key guard on it.
+* Distinguish the primary-key property from its column, so camelCase primary-key properties work correctly
+  in reads, saves and guards.
 
 ## v0.8.0
 

@@ -16,7 +16,7 @@ class Vehicle implements Model
     use ActsAsModel;
 
     #[Column('id')]
-    public int $id;
+    public int $vehicleId;
 
     #[Column('kind')]
     public string $kind;
