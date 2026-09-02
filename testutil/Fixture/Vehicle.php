@@ -10,10 +10,15 @@ use SubstancePHP\SQL\Model;
 use SubstancePHP\SQL\Traits\ActsAsModel;
 
 /** @implements Model<self> */
-#[Table('vehicles', 'id')]
+#[Table('vehicles')]
 class Vehicle implements Model
 {
     use ActsAsModel;
+
+    public static function getPrimaryKeyProperty(): string
+    {
+        return 'vehicleId';
+    }
 
     #[Column('id')]
     public int $vehicleId;
