@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## v0.10.0
+
+* Support models over tables without a primary key: override `getPrimaryKeyProperty()` to return `null`.
+  Keyed operations (`find`, `save`, `update`, `delete`, `getPrimaryKey`) throw for such models; reads
+  and inserts work as usual.
+
 ## v0.9.0
 
 Breaking changes:

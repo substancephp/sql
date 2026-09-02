@@ -19,9 +19,12 @@ trait ActsAsModel
         return self::getTableAttributeInstance()->name;
     }
 
-    public static function getPrimaryKeyColumn(): string
+    public static function getPrimaryKeyColumn(): ?string
     {
         $property = self::getPrimaryKeyProperty();
+        if ($property === null) {
+            return null;
+        }
         $reflectionProperty = self::$reflectionProperties[$property]
             ??= new \ReflectionProperty(self::class, $property);
         $attributes = $reflectionProperty->getAttributes(Column::class);
@@ -33,7 +36,7 @@ trait ActsAsModel
         return $attributes[0]->newInstance()->name;
     }
 
-    public static function getPrimaryKeyProperty(): string
+    public static function getPrimaryKeyProperty(): ?string
     {
         return 'id';
     }
@@ -55,7 +58,11 @@ trait ActsAsModel
 
     public function getPrimaryKey(): mixed
     {
-        return $this->{self::getPrimaryKeyProperty()};
+        $property = self::getPrimaryKeyProperty();
+        if ($property === null) {
+            throw new \LogicException(self::class . ' has no primary key.');
+        }
+        return $this->{$property};
     }
 
     /** Whether the given property has been initialized (present), as opposed to absent. */

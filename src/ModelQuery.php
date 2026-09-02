@@ -74,7 +74,11 @@ class ModelQuery
      */
     public static function find(string $class, mixed $primaryKey): self
     {
-        return self::selectFrom($class)->where([$class::getPrimaryKeyColumn() => $primaryKey]);
+        $primaryKeyColumn = $class::getPrimaryKeyColumn();
+        if ($primaryKeyColumn === null) {
+            throw new \LogicException("Model class $class has no primary key.");
+        }
+        return self::selectFrom($class)->where([$primaryKeyColumn => $primaryKey]);
     }
 
     /**
@@ -247,6 +251,9 @@ class ModelQuery
         $class = \get_class($model);
         $primaryKeyColumn = $class::getPrimaryKeyColumn();
         $primaryKeyProperty = $class::getPrimaryKeyProperty();
+        if ($primaryKeyColumn === null || $primaryKeyProperty === null) {
+            throw new \LogicException("Model class $class has no primary key.");
+        }
         self::assertInitializedPrimaryKey($class, $primaryKeyProperty, $model);
         $primaryKey = $model->getPrimaryKey();
         $modelQuery = new self($class);
@@ -304,7 +311,13 @@ class ModelQuery
     public static function save($model): self
     {
         $class = \get_class($model);
-        return $model->propertyIsInitialized($class::getPrimaryKeyProperty())
+        $primaryKeyProperty = $class::getPrimaryKeyProperty();
+        if ($primaryKeyProperty === null) {
+            throw new \LogicException(
+                "Cannot save a model of class $class with no primary key; use insert() instead.",
+            );
+        }
+        return $model->propertyIsInitialized($primaryKeyProperty)
             ? self::update($model)
             : self::insert($model);
     }
@@ -331,6 +344,9 @@ class ModelQuery
         $class = \get_class($model);
         $primaryKeyColumn = $class::getPrimaryKeyColumn();
         $primaryKeyProperty = $class::getPrimaryKeyProperty();
+        if ($primaryKeyColumn === null || $primaryKeyProperty === null) {
+            throw new \LogicException("Model class $class has no primary key.");
+        }
         self::assertInitializedPrimaryKey($class, $primaryKeyProperty, $model);
         $primaryKey = $model->getPrimaryKey();
         $modelQuery = new self($class);

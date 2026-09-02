@@ -12,9 +12,9 @@ interface Model
 
     public static function getTableName(): string;
 
-    public static function getPrimaryKeyColumn(): string;
+    public static function getPrimaryKeyColumn(): ?string;
 
-    public static function getPrimaryKeyProperty(): string;
+    public static function getPrimaryKeyProperty(): ?string;
 
     public function getPrimaryKey(): mixed;
 

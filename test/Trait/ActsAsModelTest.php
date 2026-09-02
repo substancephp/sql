@@ -10,6 +10,7 @@ use PHPUnit\Framework\TestCase;
 use SubstancePHP\SQL\ModelQuery;
 use SubstancePHP\SQL\Query;
 use TestUtil\Fixture\DefaultPrimaryKeyVehicle;
+use TestUtil\Fixture\PrimaryKeylessVehicle;
 use TestUtil\Fixture\Vehicle;
 
 #[CoversClass(ModelQuery::class)]
@@ -144,6 +145,50 @@ final class ActsAsModelTest extends TestCase
         $this->assertNotNull($retrieved);
         $this->assertSame('car', $retrieved->kind);
         $this->assertSame(1, $retrieved->id);
+    }
+
+    #[Test]
+    public function primaryKeylessModelReadsAndInserts(): void
+    {
+        $this->assertNull(PrimaryKeylessVehicle::getPrimaryKeyProperty());
+        $this->assertNull(PrimaryKeylessVehicle::getPrimaryKeyColumn());
+
+        $this->pdo->exec('create table primary_keyless_vehicles (kind, make)');
+
+        $vehicle = new PrimaryKeylessVehicle();
+        $vehicle->kind = 'car';
+        $vehicle->make = 'Ford';
+        $vehicle->insert()->run($this->pdo);
+
+        $results = ModelQuery::selectFrom(PrimaryKeylessVehicle::class)->fetch($this->pdo);
+        $this->assertCount(1, $results);
+        $this->assertSame('Ford', $results[0]->make);
+    }
+
+    #[Test]
+    public function primaryKeylessModelRejectsKeyedOperations(): void
+    {
+        $this->pdo->exec('create table primary_keyless_vehicles (kind, make)');
+
+        $vehicle = new PrimaryKeylessVehicle();
+        $vehicle->kind = 'car';
+        $vehicle->make = 'Ford';
+
+        $operations = [
+            fn () => $vehicle->getPrimaryKey(),
+            fn () => ModelQuery::save($vehicle),
+            fn () => ModelQuery::update($vehicle),
+            fn () => ModelQuery::delete($vehicle),
+            fn () => ModelQuery::find(PrimaryKeylessVehicle::class, 1),
+        ];
+        foreach ($operations as $operation) {
+            try {
+                $operation();
+                $this->fail('Expected a LogicException.');
+            } catch (\LogicException $exception) {
+                $this->assertStringContainsString('no primary key', $exception->getMessage());
+            }
+        }
     }
 
     #[Test]
