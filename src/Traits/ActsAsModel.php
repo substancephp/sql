@@ -24,6 +24,17 @@ trait ActsAsModel
         return self::getTableAttributeInstance()->primaryKey;
     }
 
+    public static function getPrimaryKeyProperty(): string
+    {
+        $primaryKeyColumn = self::getPrimaryKeyColumn();
+        foreach (self::getColumns() as $property => $column) {
+            if ($column === $primaryKeyColumn) {
+                return \is_int($property) ? $column : $property;
+            }
+        }
+        return $primaryKeyColumn;
+    }
+
     private static function getTableAttributeInstance(): Table
     {
         static $result;
@@ -41,7 +52,7 @@ trait ActsAsModel
 
     public function getPrimaryKey(): mixed
     {
-        return $this->{self::getPrimaryKeyColumn()};
+        return $this->{self::getPrimaryKeyProperty()};
     }
 
     /** Whether the given property has been initialized (present), as opposed to absent. */
