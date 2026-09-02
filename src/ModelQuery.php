@@ -245,15 +245,16 @@ class ModelQuery
     public static function update($model): self
     {
         $class = \get_class($model);
+        $primaryKeyColumn = $class::getPrimaryKeyColumn();
+        self::assertInitializedPrimaryKey($class, $primaryKeyColumn, $model);
         $primaryKey = $model->getPrimaryKey();
-        self::assertPopulatedPrimaryKey($class, $primaryKey);
         $modelQuery = new self($class);
         $updates = $model->getWriteableValues();
-        unset($updates[$class::getPrimaryKeyColumn()]);
+        unset($updates[$primaryKeyColumn]);
         $modelQuery->query
             ->appendUpdate($class::getTableName())
             ->set($updates)
-            ->where([$class::getPrimaryKeyColumn() => $primaryKey]);
+            ->where([$primaryKeyColumn => $primaryKey]);
         return $modelQuery;
     }
 
@@ -301,8 +302,10 @@ class ModelQuery
      */
     public static function save($model): self
     {
-        $primaryKey = $model->getPrimaryKey();
-        return ($primaryKey ?? Noop::T) === Noop::T ? self::insert($model) : self::update($model);
+        $class = \get_class($model);
+        return $model->propertyIsInitialized($class::getPrimaryKeyColumn())
+            ? self::update($model)
+            : self::insert($model);
     }
 
     /**
@@ -325,28 +328,25 @@ class ModelQuery
     public static function delete($model): self
     {
         $class = \get_class($model);
+        $primaryKeyColumn = $class::getPrimaryKeyColumn();
+        self::assertInitializedPrimaryKey($class, $primaryKeyColumn, $model);
         $primaryKey = $model->getPrimaryKey();
-        self::assertPopulatedPrimaryKey($class, $primaryKey);
         $modelQuery = new self($class);
         $modelQuery->query
             ->appendDeleteFrom($class::getTableName())
-            ->where([$class::getPrimaryKeyColumn() => $primaryKey]);
+            ->where([$primaryKeyColumn => $primaryKey]);
         return $modelQuery;
     }
 
-    /** @param class-string $class */
-    private static function assertPopulatedPrimaryKey(string $class, mixed $primaryKey): void
+    /**
+     * @param class-string $class
+     * @param Model<mixed> $model
+     */
+    private static function assertInitializedPrimaryKey(string $class, string $primaryKeyColumn, $model): void
     {
-        $isUnpopulated = ($primaryKey === Noop::T)
-            || ($primaryKey === null)
-            || ($primaryKey === '')
-            // To avoid "surprising inequalities", numbers are compared loosely, so that 0 and 0.0 count as
-            // unpopulated too.
-            || (\is_int($primaryKey) && $primaryKey == 0)
-            || (\is_float($primaryKey) && $primaryKey == 0.0);
-        if ($isUnpopulated) {
+        if (! $model->propertyIsInitialized($primaryKeyColumn)) {
             throw new \InvalidArgumentException(
-                "Cannot operate on model of class $class: its primary key is unpopulated.",
+                "Cannot operate on model of class $class: its primary key is uninitialized.",
             );
         }
     }

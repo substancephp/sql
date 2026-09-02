@@ -7,7 +7,6 @@ namespace TestUtil\Fixture;
 use SubstancePHP\SQL\Attributes\Column;
 use SubstancePHP\SQL\Attributes\Table;
 use SubstancePHP\SQL\Model;
-use SubstancePHP\SQL\Noop;
 use SubstancePHP\SQL\Traits\ActsAsModel;
 
 /** @implements Model<self> */
@@ -17,20 +16,23 @@ class Vehicle implements Model
     use ActsAsModel;
 
     #[Column('id')]
-    public Noop|int $id = Noop::T;
+    public int $id;
 
     #[Column('kind')]
-    public Noop|string $kind = Noop::T;
+    public string $kind;
 
     #[Column('make')]
-    public Noop|string $make = Noop::T;
+    public string $make;
 
     #[Column('model')]
-    public Noop|string $model = Noop::T;
+    public string $model;
 
     #[Column('year')]
-    public Noop|int $year = Noop::T;
+    public int $year;
 
     #[Column('brief_description')]
-    public Noop|string|null $briefDescription = Noop::T;
+    public ?string $briefDescription;
+
+    /** @var array<string, mixed> */
+    public array $notes = [];
 }

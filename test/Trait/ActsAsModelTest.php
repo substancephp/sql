@@ -8,7 +8,6 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use SubstancePHP\SQL\ModelQuery;
-use SubstancePHP\SQL\Noop;
 use SubstancePHP\SQL\Query;
 use TestUtil\Fixture\Vehicle;
 
@@ -113,12 +112,117 @@ final class ActsAsModelTest extends TestCase
         $vehicle->model = 'Civic';
         $vehicle->year = 1980;
         $vehicle->briefDescription = null;
-        $this->assertSame(Noop::T, $vehicle->id);
-        define('TRY_IT', true);
+        $this->assertFalse($vehicle->propertyIsInitialized('id'));
         $vehicle->save()->run($this->pdo);
         $vehicle = Vehicle::selectAll()->where(['model' => 'Civic'])->first($this->pdo);
         $this->assertNotNull($vehicle);
         $this->assertSame('Civic', $vehicle->model);
-        $this->assertIsInt($vehicle->id);
+        $this->assertGreaterThan(0, $vehicle->id);
+    }
+
+    #[Test]
+    public function writeableValuesIncludeOnlyInitializedProperties(): void
+    {
+        $vehicle = new Vehicle();
+        $vehicle->make = 'Ford';
+        $vehicle->briefDescription = null;
+
+        $this->assertSame(
+            ['make' => 'Ford', 'brief_description' => null],
+            $vehicle->getWriteableValues(),
+        );
+    }
+
+    #[Test]
+    public function readingUninitializedPropertyThrows(): void
+    {
+        $vehicle = new Vehicle();
+
+        $this->expectException(\Error::class);
+        $this->assertSame('', $vehicle->kind);
+    }
+
+    #[Test]
+    public function readingInitializedProperties(): void
+    {
+        $vehicle = new Vehicle();
+        $vehicle->briefDescription = null;
+        $vehicle->year = 2000;
+
+        $this->assertNull($vehicle->briefDescription);
+        $this->assertSame(2000, $vehicle->year);
+    }
+
+    #[Test]
+    public function propertyInitializationIsDistinguishedFromNull(): void
+    {
+        $vehicle = new Vehicle();
+        $this->assertFalse($vehicle->propertyIsInitialized('briefDescription'));
+
+        $vehicle->briefDescription = null;
+        $this->assertTrue($vehicle->propertyIsInitialized('briefDescription'));
+    }
+
+    #[Test]
+    public function hydrationInitialisesOnlyPresentColumns(): void
+    {
+        $vehicle = new Vehicle();
+        $vehicle->readFromQueryResult(['make' => 'Ford']);
+
+        $this->assertTrue($vehicle->propertyIsInitialized('make'));
+        $this->assertFalse($vehicle->propertyIsInitialized('kind'));
+
+        $this->expectException(\Error::class);
+        $this->assertSame('', $vehicle->kind);
+    }
+
+    #[Test]
+    public function hydrationInitialisesNullColumns(): void
+    {
+        $vehicle = new Vehicle();
+        $vehicle->kind = 'car';
+        $vehicle->make = 'Ford';
+        $vehicle->model = 'Falcon';
+        $vehicle->year = 2000;
+        $vehicle->briefDescription = null;
+        $vehicle->insert()->run($this->pdo);
+
+        $retrieved = Vehicle::find(1)->first($this->pdo);
+        $this->assertNotNull($retrieved);
+        $this->assertTrue($retrieved->propertyIsInitialized('briefDescription'));
+        $this->assertNull($retrieved->briefDescription);
+    }
+
+    #[Test]
+    public function saveUpdatesWhenPrimaryKeyInitialized(): void
+    {
+        $vehicle = new Vehicle();
+        $vehicle->kind = 'car';
+        $vehicle->make = 'Ford';
+        $vehicle->model = 'Falcon';
+        $vehicle->year = 2000;
+        $vehicle->briefDescription = 'flagship sedan';
+        $vehicle->insert()->run($this->pdo);
+
+        $retrieved = Vehicle::find(1)->first($this->pdo);
+        $this->assertNotNull($retrieved);
+        $retrieved->year = 1999;
+        $retrieved->save()->run($this->pdo);
+
+        $again = Vehicle::find(1)->first($this->pdo);
+        $this->assertNotNull($again);
+        $this->assertSame(1999, $again->year);
+    }
+
+    #[Test]
+    public function inMemoryOnlyPropertyIsIgnoredByWrites(): void
+    {
+        $vehicle = new Vehicle();
+        $vehicle->make = 'Ford';
+        $vehicle->notes = ['x' => 'y'];
+
+        $this->assertSame(['make' => 'Ford'], $vehicle->getWriteableValues());
+        $this->assertSame(['x' => 'y'], $vehicle->notes);
+        $this->assertNotContains('notes', $vehicle->getColumns());
     }
 }

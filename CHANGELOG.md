@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+* Replace the `Noop` sentinel with native uninitialized typed properties for absent model column values;
+  add a property-initialization presence helper, and base the update/delete primary-key guard on it.
+
+## v0.8.0
+
 * Add PostgreSQL test support and CI coverage.
 * Quote select aliases when needed; hydrate models only from declared columns.
 * Guard update/delete against unpopulated primary keys.

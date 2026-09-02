@@ -7,10 +7,12 @@ namespace SubstancePHP\SQL\Traits;
 use SubstancePHP\SQL\Attributes\Column;
 use SubstancePHP\SQL\Attributes\Table;
 use SubstancePHP\SQL\ModelQuery;
-use SubstancePHP\SQL\Noop;
 
 trait ActsAsModel
 {
+    /** @var array<string, \ReflectionProperty> */
+    private static array $reflectionProperties = [];
+
     /** @throws \Exception */
     public static function getTableName(): string
     {
@@ -29,7 +31,9 @@ trait ActsAsModel
             $reflectionClass = new \ReflectionClass(self::class);
             $attributes = $reflectionClass->getAttributes(Table::class);
             if (\count($attributes) == 0) {
-                throw new \Exception($reflectionClass->getName() . ' does not have attribute ' . Table::class);
+                throw new \Exception(
+                    $reflectionClass->getName() . ' does not have attribute ' . Table::class,
+                );
             }
             return $attributes[0]->newInstance();
         })();
@@ -38,6 +42,14 @@ trait ActsAsModel
     public function getPrimaryKey(): mixed
     {
         return $this->{self::getPrimaryKeyColumn()};
+    }
+
+    /** Whether the given property has been initialized (present), as opposed to absent. */
+    public function propertyIsInitialized(string $property): bool
+    {
+        $reflectionProperty = self::$reflectionProperties[$property]
+            ??= new \ReflectionProperty(self::class, $property);
+        return $reflectionProperty->isInitialized($this);
     }
 
     /** @return string[] */
@@ -83,15 +95,11 @@ trait ActsAsModel
     public function getWriteableValues(): array
     {
         $values = [];
-        foreach (self::getColumns() as $k => $v) {
-            if (\is_string($k)) {
-                if ($this->{$k} !== Noop::T) {
-                    $values[$v] = $this->{$k};
-                }
-            } else {
-                if ($this->{$v} !== Noop::T) {
-                    $values[$v] = $this->{$v};
-                }
+        $initializedProperties = \get_object_vars($this);
+        foreach (self::getColumns() as $key => $column) {
+            $property = (\is_int($key) ? $column : $key);
+            if (\array_key_exists($property, $initializedProperties)) {
+                $values[$column] = $this->{$property};
             }
         }
         return $values;

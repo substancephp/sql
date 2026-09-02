@@ -199,11 +199,13 @@ final class ModelQueryTest extends TestCase
     }
 
     #[Test]
-    public function updateWithZeroPrimaryKeyThrows(): void
+    public function updateWithZeroPrimaryKeyBuildsQuery(): void
     {
         $vehicle = Vehicle::makeDefault();
         $vehicle->id = 0;
-        $this->expectException(\InvalidArgumentException::class);
-        ModelQuery::update($vehicle);
+        $vehicle->kind = 'car';
+
+        $query = ModelQuery::update($vehicle);
+        $this->assertSame('update vehicles set kind = ? where ( id = ? )', $query->getSql());
     }
 }
