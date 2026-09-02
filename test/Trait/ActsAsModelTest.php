@@ -9,6 +9,7 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use SubstancePHP\SQL\ModelQuery;
 use SubstancePHP\SQL\Query;
+use TestUtil\Fixture\DefaultPrimaryKeyVehicle;
 use TestUtil\Fixture\Vehicle;
 
 #[CoversClass(ModelQuery::class)]
@@ -125,6 +126,24 @@ final class ActsAsModelTest extends TestCase
     {
         $this->assertSame('id', Vehicle::getPrimaryKeyColumn());
         $this->assertSame('vehicleId', Vehicle::getPrimaryKeyProperty());
+    }
+
+    #[Test]
+    public function primaryKeyPropertyDefaultsToId(): void
+    {
+        $this->assertSame('id', DefaultPrimaryKeyVehicle::getPrimaryKeyProperty());
+        $this->assertSame('id', DefaultPrimaryKeyVehicle::getPrimaryKeyColumn());
+
+        $this->pdo->exec('create table default_pk_vehicles (id integer primary key autoincrement, kind)');
+
+        $vehicle = new DefaultPrimaryKeyVehicle();
+        $vehicle->kind = 'car';
+        $vehicle->insert()->run($this->pdo);
+
+        $retrieved = ModelQuery::find(DefaultPrimaryKeyVehicle::class, 1)->first($this->pdo);
+        $this->assertNotNull($retrieved);
+        $this->assertSame('car', $retrieved->kind);
+        $this->assertSame(1, $retrieved->id);
     }
 
     #[Test]

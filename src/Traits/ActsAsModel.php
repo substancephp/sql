@@ -21,18 +21,21 @@ trait ActsAsModel
 
     public static function getPrimaryKeyColumn(): string
     {
-        return self::getTableAttributeInstance()->primaryKey;
+        $property = self::getPrimaryKeyProperty();
+        $reflectionProperty = self::$reflectionProperties[$property]
+            ??= new \ReflectionProperty(self::class, $property);
+        $attributes = $reflectionProperty->getAttributes(Column::class);
+        if (\count($attributes) == 0) {
+            throw new \Exception(
+                self::class . '::$' . $property . ' must have a ' . Column::class . ' attribute.',
+            );
+        }
+        return $attributes[0]->newInstance()->name;
     }
 
     public static function getPrimaryKeyProperty(): string
     {
-        $primaryKeyColumn = self::getPrimaryKeyColumn();
-        foreach (self::getColumns() as $property => $column) {
-            if ($column === $primaryKeyColumn) {
-                return \is_int($property) ? $column : $property;
-            }
-        }
-        return $primaryKeyColumn;
+        return 'id';
     }
 
     private static function getTableAttributeInstance(): Table
